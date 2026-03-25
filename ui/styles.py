@@ -95,6 +95,17 @@ def apply_dark_theme(root: tk.Tk) -> None:
         foreground=[("disabled", SUBTEXT)],
     )
 
+    # Warning button (update available)
+    style.configure("Warning.TButton",
+        background="#3d3000", foreground=WARNING,
+        bordercolor=WARNING, padding=[8, 4],
+        font=("Segoe UI", 8),
+    )
+    style.map("Warning.TButton",
+        background=[("active", "#524200"), ("disabled", PANEL)],
+        foreground=[("disabled", SUBTEXT)],
+    )
+
     # Ghost button (secondary actions)
     style.configure("Ghost.TButton",
         background=PANEL, foreground=SUBTEXT,

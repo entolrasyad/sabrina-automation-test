@@ -1,6 +1,10 @@
 # Credentials — jangan di-push ke repository
 config/credentials.json
 
+# Archive / distribusi
+*.rar
+*.zip
+
 # Python cache
 __pycache__/
 *.pyc
