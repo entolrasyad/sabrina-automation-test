@@ -21,7 +21,7 @@ class CredentialsDialog(tk.Toplevel):
         self._on_save = on_save
         self._force   = force
 
-        self.title("Konfigurasi Credentials")
+        self.title("Edit Credentials")
         self.configure(bg=PANEL)
         self.resizable(False, False)
         self.grab_set()
@@ -44,12 +44,12 @@ class CredentialsDialog(tk.Toplevel):
 
         # ── Header ─────────────────────────────────────────────────────────────
         tk.Label(root,
-                 text="Sabrina Bot — Login Credentials",
+                 text="Login Credentials",
                  bg=PANEL, fg=TEXT,
                  font=("Segoe UI", 11, "bold")).pack(anchor="w")
 
         tk.Label(root,
-                 text="Masukkan username & password akun Sabrina BOT.",
+                 text="Masukkan username & password akun Sabrina Dev.",
                  bg=PANEL, fg=SUBTEXT,
                  font=("Segoe UI", 9)).pack(anchor="w", pady=(2, 14))
 

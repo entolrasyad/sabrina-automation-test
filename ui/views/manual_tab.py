@@ -22,7 +22,7 @@ class ManualTab(ttk.Frame):
 
     def _build(self):
         # ── Row 0: Input ────────────────────────────────────────────────────────
-        ttk.Label(self, text="User Says").grid(row=0, column=0, sticky="w")
+        ttk.Label(self, text="Kirim Chat/Trigger").grid(row=0, column=0, sticky="w")
 
         input_frame = ttk.Frame(self)
         input_frame.grid(row=0, column=1, columnspan=2, sticky="ew", padx=(10, 0))
@@ -148,7 +148,7 @@ class ManualTab(ttk.Frame):
             return
         user_says = self._input.get().strip()
         if not user_says:
-            messagebox.showwarning("Input Kosong", "Isi kolom User Says terlebih dahulu.")
+            messagebox.showwarning("Input Kosong", "Isi kolom Chat/Trigger terlebih dahulu.")
             return
 
         self._input.delete(0, "end")

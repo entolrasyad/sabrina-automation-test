@@ -11,6 +11,18 @@ LOG_FILE = os.path.join(BASE_DIR, "error.log")
 
 sys.path.insert(0, BASE_DIR)
 
+# Beritahu Windows bahwa app ini DPI-aware agar tidak di-scale paksa
+# Harus dipanggil SEBELUM tkinter window dibuat
+if sys.platform == "win32":
+    try:
+        import ctypes
+        ctypes.windll.shcore.SetProcessDpiAwareness(2)  # Per-monitor DPI aware
+    except Exception:
+        try:
+            ctypes.windll.user32.SetProcessDPIAware()   # Fallback: system DPI aware
+        except Exception:
+            pass
+
 try:
     import urllib3
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)

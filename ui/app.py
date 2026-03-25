@@ -26,7 +26,8 @@ class App(tk.Tk):
         self.title("Dolphin Bot Tester")
         self.resizable(True, True)
         self.configure(bg=BG)
-        self.minsize(720, 560)
+        self.minsize(1150, 680)
+        self._center_window(1150, 680)
 
         apply_dark_theme(self)
 
@@ -49,10 +50,18 @@ class App(tk.Tk):
         if not self._cookie_str or not self._view_state:
             messagebox.showwarning(
                 "Credential Belum Siap",
-                "Klik  ⚡ Login & Get Credentials  terlebih dahulu.",
+                "Klik Login terlebih dahulu.",
             )
             return False
         return True
+
+    def _center_window(self, w: int, h: int):
+        self.update_idletasks()
+        sw = self.winfo_screenwidth()
+        sh = self.winfo_screenheight()
+        x  = (sw - w) // 2
+        y  = (sh - h) // 2
+        self.geometry(f"{w}x{h}+{x}+{y}")
 
     # ── UI Construction ─────────────────────────────────────────────────────────
 
