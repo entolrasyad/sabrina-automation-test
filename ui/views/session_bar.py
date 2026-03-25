@@ -8,9 +8,8 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 
 from pages.dashboard_page import DashboardPage
-from ui.constants import PANEL, TEXT, SUBTEXT, SUCCESS, DANGER, WARNING
+from ui.constants import PANEL, TEXT, SUBTEXT, SUCCESS, DANGER
 from ui.api import selenium_login
-from ui import updater
 from config import credential_manager
 from ui.views.credentials_dialog import CredentialsDialog
 
@@ -34,6 +33,7 @@ class SessionBar(ttk.LabelFrame):
                                      style="Panel.TLabel")
         self._cred_label.grid(row=0, column=0, sticky="w")
 
+        # ── Kanan: credential buttons (kiri→kanan: Login, Logout, Edit) ──────────
         btn_frame = ttk.Frame(inner, style="Panel.TFrame")
         btn_frame.grid(row=0, column=1, sticky="e")
 
@@ -48,45 +48,21 @@ class SessionBar(ttk.LabelFrame):
                                       command=self._start_logout,
                                       style="Danger.TButton",
                                       state="disabled")
-        self._logout_btn.pack(side="left", padx=(6, 0))
+        self._logout_btn.pack(side="left", padx=(0, 6))
 
         ttk.Button(btn_frame,
                    text="✏  Edit Credentials",
                    command=self._open_credentials_dialog,
-                   style="Ghost.TButton").pack(side="left", padx=(6, 0))
+                   style="Ghost.TButton").pack(side="left")
 
-        # ── Row 1: progress + versi ─────────────────────────────────────────────
-        bottom = ttk.Frame(self, style="Panel.TFrame")
-        bottom.grid(row=1, column=0, sticky="ew", pady=(6, 0))
-        bottom.columnconfigure(0, weight=1)
-
+        # ── Row 1: progress ─────────────────────────────────────────────────────
         self._progress_var = tk.StringVar(value="Belum ada credentials. Klik Login.")
-        ttk.Label(bottom, textvariable=self._progress_var,
-                  style="Panel.Sub.TLabel").grid(row=0, column=0, sticky="w")
-
-        # Versi + tombol update (kanan)
-        ver_frame = ttk.Frame(bottom, style="Panel.TFrame")
-        ver_frame.grid(row=0, column=1, sticky="e")
-
-        self._ver_label = ttk.Label(ver_frame,
-                                    text=updater.get_local_version(),
-                                    style="Panel.Sub.TLabel",
-                                    font=("Segoe UI", 8))
-        self._ver_label.pack(side="left", padx=(0, 6))
-
-        self._update_btn = ttk.Button(ver_frame,
-                                      text="⬆  Update Tersedia",
-                                      command=self._do_update,
-                                      style="Warning.TButton")
-        self._update_btn.pack(side="left")
-        self._update_btn.pack_forget()   # sembunyi dulu
+        ttk.Label(self, textvariable=self._progress_var,
+                  style="Panel.Sub.TLabel").grid(row=1, column=0, sticky="w", pady=(6, 0))
 
         self.refresh()
-        # First-run: jika belum ada credentials, minta input sekarang
         if not credential_manager.exists():
             self._app.after(300, self._open_credentials_dialog_firstrun)
-        # Cek update di background saat startup
-        self._app.after(1000, self._check_update_bg)
 
     # ── Public Interface ────────────────────────────────────────────────────────
 
@@ -211,26 +187,6 @@ class SessionBar(ttk.LabelFrame):
             self.set_progress(f"✓  Credentials disimpan. Silakan klik Login.")
 
         CredentialsDialog(self._app, on_save=_on_save, force=True)
-
-    # ── Update ───────────────────────────────────────────────────────────────
-
-    def _check_update_bg(self):
-        """Cek versi terbaru di background, tampilkan tombol jika ada update."""
-        def _worker():
-            try:
-                available, local, remote = updater.is_update_available()
-                if available:
-                    self._app.after(0, self._show_update_btn, local, remote)
-            except Exception:
-                pass   # Tidak ada koneksi / repo tidak ditemukan — diam saja
-
-        threading.Thread(target=_worker, daemon=True).start()
-
-    def _show_update_btn(self, local: str, remote: str):
-        self._ver_label.config(
-            text=f"{local}  →  {remote}",
-            foreground=WARNING)
-        self._update_btn.pack(side="left")
 
     def _do_update(self):
         if not messagebox.askyesno(

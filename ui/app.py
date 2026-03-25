@@ -14,6 +14,7 @@ from ui.styles import apply_dark_theme, draw_gradient
 from ui.views.session_bar import SessionBar
 from ui.views.manual_tab import ManualTab
 from ui.views.bulk_tab import BulkTab
+from ui.views.update_bar import UpdateBar
 
 
 class App(tk.Tk):
@@ -70,13 +71,17 @@ class App(tk.Tk):
 
         # Notebook (row 2)
         nb = ttk.Notebook(self)
-        nb.grid(row=2, column=0, sticky="nsew", padx=12, pady=(4, 12))
+        nb.grid(row=2, column=0, sticky="nsew", padx=12, pady=(4, 4))
 
         self.manual_tab = ManualTab(nb, self)
         nb.add(self.manual_tab, text="  ✏  Manual  ")
 
         self.bulk_tab = BulkTab(nb, self)
         nb.add(self.bulk_tab, text="  📋  Bulk Excel  ")
+
+        # Update bar (row 3 — bottom)
+        self.update_bar = UpdateBar(self, self)
+        self.update_bar.grid(row=3, column=0, sticky="ew", padx=12, pady=(0, 10))
 
     def _draw_accent_bar(self):
         c = self._accent_canvas
