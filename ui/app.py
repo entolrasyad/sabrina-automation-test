@@ -104,8 +104,15 @@ class App(tk.Tk):
             self.destroy()
 
     def _logout_then_close(self):
+        self._logout_with_overlay(title="Menutup...", on_finish=self.destroy)
+
+    def logout_then_restart(self):
+        from ui import updater
+        self._logout_with_overlay(title="Update — Restart...", on_finish=updater.restart_app)
+
+    def _logout_with_overlay(self, title: str, on_finish):
         overlay = tk.Toplevel(self)
-        overlay.title("Menutup...")
+        overlay.title(title)
         overlay.resizable(False, False)
         overlay.configure(bg=PANEL)
         overlay.grab_set()
@@ -126,7 +133,7 @@ class App(tk.Tk):
         y = self.winfo_y() + (self.winfo_height() - overlay.winfo_reqheight()) // 2
         overlay.geometry(f"+{x}+{y}")
 
-        driver          = self._driver
+        driver           = self._driver
         self._driver     = None
         self._cookie_str = ""
         self._view_state = ""
@@ -148,6 +155,6 @@ class App(tk.Tk):
                 overlay.destroy()
             except Exception:
                 pass
-            self.destroy()
+            on_finish()
 
         threading.Thread(target=_worker, daemon=True).start()

@@ -103,8 +103,8 @@ class UpdateBar(ttk.Frame):
         threading.Thread(target=_worker, daemon=True).start()
 
     def _on_apply_done(self):
-        self._status_var.set("✓  Update selesai! Restart dalam 2 detik...")
-        self._app.after(2000, updater.restart_app)
+        self._status_var.set("✓  Update selesai! Logout & restart dalam 2 detik...")
+        self._app.after(2000, self._app.logout_then_restart)
 
     def _on_apply_error(self, msg: str):
         self._check_btn.config(state="normal")
