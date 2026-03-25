@@ -1,0 +1,15 @@
+# Credentials — jangan di-push ke repository
+config/credentials.json
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environment
+.venv/
+
+# Test cache
+.pytest_cache/
+
+# Error log runtime
+error.log

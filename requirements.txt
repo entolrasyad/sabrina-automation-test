@@ -1,0 +1,12 @@
+# ── Browser Automation ────────────────────────────────────────────────────────
+selenium
+webdriver-manager
+
+# ── HTTP & Network ─────────────────────────────────────────────────────────────
+requests
+urllib3
+
+# ── Excel ──────────────────────────────────────────────────────────────────────
+openpyxl
+
+# ── Note: tkinter is bundled with Python, no install needed ───────────────────
