@@ -11,28 +11,30 @@ from ui import updater
 from ui.constants import PANEL, SUBTEXT, SUCCESS, WARNING
 
 
-class UpdateBar(ttk.LabelFrame):
+class UpdateBar(ttk.Frame):
 
     def __init__(self, parent, app):
-        super().__init__(parent, text="   App Version",
-                         padding=(2, 2), style="TLabelframe")
+        super().__init__(parent, style="TFrame")
         self._app = app
         self._has_update = False
         self.columnconfigure(0, weight=1)
         self._build()
 
     def _build(self):
-        inner = ttk.Frame(self, style="Panel.TFrame")
-        inner.grid(row=0, column=0, sticky="ew")
+        ttk.Separator(self, orient="horizontal").grid(
+            row=0, column=0, sticky="ew", pady=(0, 6))
+
+        inner = ttk.Frame(self, style="TFrame")
+        inner.grid(row=1, column=0, sticky="ew")
         inner.columnconfigure(0, weight=1)
 
         # Left: version + status
-        self._status_var = tk.StringVar(value=f"Versi saat ini: {updater.get_local_version()}")
+        self._status_var = tk.StringVar(value=f"App Version: {updater.get_local_version()}")
         ttk.Label(inner, textvariable=self._status_var,
-                  style="Panel.Sub.TLabel").grid(row=0, column=0, sticky="w")
+                  style="Sub.TLabel").grid(row=0, column=0, sticky="w")
 
         # Right: buttons
-        btn_frame = ttk.Frame(inner, style="Panel.TFrame")
+        btn_frame = ttk.Frame(inner, style="TFrame")
         btn_frame.grid(row=0, column=1, sticky="e")
 
         self._check_btn = ttk.Button(btn_frame,

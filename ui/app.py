@@ -81,7 +81,7 @@ class App(tk.Tk):
 
         # Update bar (row 3 — bottom)
         self.update_bar = UpdateBar(self, self)
-        self.update_bar.grid(row=3, column=0, sticky="ew", padx=12, pady=(0, 10))
+        self.update_bar.grid(row=3, column=0, sticky="ew", padx=12, pady=(2, 8))
 
     def _draw_accent_bar(self):
         c = self._accent_canvas
