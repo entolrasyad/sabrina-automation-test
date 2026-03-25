@@ -188,31 +188,3 @@ class SessionBar(ttk.LabelFrame):
 
         CredentialsDialog(self._app, on_save=_on_save, force=True)
 
-    def _do_update(self):
-        if not messagebox.askyesno(
-                "Konfirmasi Update",
-                f"Update ke versi terbaru dari GitHub?\n\n"
-                f"Aplikasi akan restart otomatis setelah selesai.",
-                parent=self._app):
-            return
-
-        self._update_btn.config(state="disabled")
-
-        def _worker():
-            try:
-                updater.download_and_apply(
-                    on_progress=lambda m: self._app.after(0, self.set_progress, m))
-                self._app.after(0, self._on_update_done)
-            except Exception as e:
-                self._app.after(0, self._on_update_error, str(e))
-
-        threading.Thread(target=_worker, daemon=True).start()
-
-    def _on_update_done(self):
-        self.set_progress("✓  Update selesai! Restart dalam 2 detik...")
-        self._app.after(2000, updater.restart_app)
-
-    def _on_update_error(self, msg: str):
-        self._update_btn.config(state="normal")
-        self.set_progress(f"Update gagal: {msg}")
-        messagebox.showerror("Update Error", msg, parent=self._app)

@@ -38,11 +38,21 @@ def get_remote_version() -> str:
     return resp.text.strip()
 
 
+def _parse_version(v: str) -> tuple:
+    """Convert 'v1.2.3' → (1, 2, 3) untuk perbandingan numerik."""
+    import re
+    nums = re.findall(r"\d+", v)
+    return tuple(int(n) for n in nums) if nums else (0,)
+
+
 def is_update_available() -> tuple[bool, str, str]:
-    """Return (ada_update, local_ver, remote_ver)."""
+    """Return (ada_update, local_ver, remote_ver).
+    Update dianggap tersedia hanya jika remote LEBIH BARU dari local.
+    """
     local  = get_local_version()
     remote = get_remote_version()
-    return remote != local, local, remote
+    available = _parse_version(remote) > _parse_version(local)
+    return available, local, remote
 
 
 def download_and_apply(on_progress=None) -> None:

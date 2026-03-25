@@ -8,8 +8,6 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 
 from ui import updater
-from ui.constants import PANEL, SUBTEXT, SUCCESS, WARNING
-
 
 class UpdateBar(ttk.Frame):
 
@@ -55,7 +53,7 @@ class UpdateBar(ttk.Frame):
     def _check_update(self):
         self._check_btn.config(state="disabled", text="🔍  Memeriksa...")
         self._apply_btn.config(state="disabled")
-        self._status_var.set("Mengecek versi terbaru dari GitHub...")
+        self._status_var.set("Mengecek versi terbaru...")
 
         def _worker():
             try:
