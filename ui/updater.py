@@ -64,7 +64,7 @@ def download_and_apply(on_progress=None) -> None:
         if on_progress:
             on_progress(msg)
 
-    _prog("Mendownload update dari GitHub...")
+    _prog("Mendownload versi terbaru...")
     resp = requests.get(REPO_ZIP, timeout=60, stream=True)
     resp.raise_for_status()
 

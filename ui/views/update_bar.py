@@ -83,7 +83,7 @@ class UpdateBar(ttk.Frame):
     def _apply_update(self):
         if not messagebox.askyesno(
                 "Konfirmasi Update",
-                "Download dan terapkan versi terbaru dari GitHub?\n\n"
+                "Download dan terapkan versi terbaru?\n\n"
                 "Aplikasi akan restart otomatis setelah selesai.",
                 parent=self._app):
             return
