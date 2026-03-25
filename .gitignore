@@ -17,3 +17,7 @@ __pycache__/
 
 # Error log runtime
 error.log
+
+# Dev scripts — tidak perlu di repo
+bump_version.py
+push.bat
