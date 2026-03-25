@@ -101,15 +101,20 @@ class ManualTab(ttk.Frame):
         row = tk.Frame(self._chat_inner, bg=BG)
         row.pack(fill="x", pady=(4, 0), padx=8)
 
-        content = f"{dialog}\n\nScore: {score}" if score else dialog
-
-        bubble = tk.Label(row, text=content,
-                          bg=WIDGET, fg=TEXT,
-                          font=("Segoe UI", 9),
-                          wraplength=380, justify="left",
-                          padx=12, pady=8, relief="flat",
-                          cursor="arrow")
+        bubble = tk.Frame(row, bg=WIDGET, padx=12, pady=8)
         bubble.pack(side="left")
+
+        tk.Label(bubble, text="Dialog:", bg=WIDGET, fg=TEXT,
+                 font=("Segoe UI", 9, "bold"), justify="left").pack(anchor="w")
+        tk.Label(bubble, text=dialog, bg=WIDGET, fg=TEXT,
+                 font=("Segoe UI", 9), justify="left", wraplength=380).pack(anchor="w")
+
+        if score:
+            tk.Label(bubble, text="Score:", bg=WIDGET, fg=TEXT,
+                     font=("Segoe UI", 9, "bold"), justify="left").pack(anchor="w", pady=(8, 0))
+            tk.Label(bubble, text=score, bg=WIDGET, fg=TEXT,
+                     font=("Segoe UI", 9), justify="left", wraplength=380).pack(anchor="w")
+
         self._scroll_bottom()
 
     def _add_loading_bubble(self):

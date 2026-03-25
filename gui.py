@@ -19,6 +19,8 @@ try:
     except Exception:
         pass
 
+    import atexit
+    from pages.dashboard_page import DashboardPage
     from ui.app import App
 
     if __name__ == "__main__":
@@ -26,6 +28,23 @@ try:
         if os.path.exists(LOG_FILE):
             os.remove(LOG_FILE)
         app = App()
+
+        # Safety net: logout + kill driver jika app crash / close tidak normal
+        def _emergency_cleanup():
+            driver = app._driver
+            if not driver:
+                return
+            try:
+                DashboardPage(driver).logout()
+            except Exception:
+                pass
+            finally:
+                try:
+                    driver.quit()
+                except Exception:
+                    pass
+
+        atexit.register(_emergency_cleanup)
         app.mainloop()
 
 except Exception:
