@@ -4,13 +4,16 @@ Dialog form untuk input / edit username & password.
 """
 
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import messagebox
+import customtkinter as ctk
 
 from config import credential_manager
-from ui.constants import PANEL, WIDGET, TEXT, SUBTEXT, BORDER
+from ui.constants import PANEL, WIDGET, TEXT, SUBTEXT, BORDER, ACCENT, ACCENT_D
+from ui.constants import BTN_ACCENT, BTN_GHOST
+from ui.constants import FONT, FONT_BOLD, FONT_SMALL, FONT_LABEL
 
 
-class CredentialsDialog(tk.Toplevel):
+class CredentialsDialog(ctk.CTkToplevel):
     """
     Modal dialog untuk mengisi atau mengedit credentials.
     force=True → tidak bisa ditutup tanpa mengisi (first-run).
@@ -22,7 +25,7 @@ class CredentialsDialog(tk.Toplevel):
         self._force   = force
 
         self.title("Edit Credentials")
-        self.configure(bg=PANEL)
+        self.configure(fg_color=PANEL)
         self.resizable(False, False)
         self.grab_set()
         self.focus_set()
@@ -39,84 +42,87 @@ class CredentialsDialog(tk.Toplevel):
     # ── Build ──────────────────────────────────────────────────────────────────
 
     def _build(self):
-        root = tk.Frame(self, bg=PANEL, padx=28, pady=20)
-        root.pack(fill="both", expand=True)
+        root = ctk.CTkFrame(self, fg_color="transparent")
+        root.pack(fill="both", expand=True, padx=28, pady=20)
 
-        # ── Header ─────────────────────────────────────────────────────────────
-        tk.Label(root,
-                 text="Login Credentials",
-                 bg=PANEL, fg=TEXT,
-                 font=("Segoe UI", 11, "bold")).pack(anchor="w")
+        # Header
+        ctk.CTkLabel(root,
+                     text="Login Credentials",
+                     fg_color="transparent",
+                     text_color=TEXT,
+                     font=FONT_BOLD).pack(anchor="w")
 
-        tk.Label(root,
-                 text="Masukkan username & password akun Sabrina Dev.",
-                 bg=PANEL, fg=SUBTEXT,
-                 font=("Segoe UI", 9)).pack(anchor="w", pady=(2, 14))
+        ctk.CTkLabel(root,
+                     text="Masukkan username & password akun Sabrina Dev.",
+                     fg_color="transparent",
+                     text_color=SUBTEXT,
+                     font=FONT_SMALL).pack(anchor="w", pady=(2, 14))
 
-        # ── Username ───────────────────────────────────────────────────────────
-        tk.Label(root, text="Username",
-                 bg=PANEL, fg=SUBTEXT,
-                 font=("Segoe UI", 8)).pack(anchor="w")
+        # Username
+        ctk.CTkLabel(root, text="Username",
+                     fg_color="transparent",
+                     text_color=SUBTEXT,
+                     font=FONT_LABEL).pack(anchor="w")
 
         self._user_var = tk.StringVar()
-        self._user_entry = tk.Entry(root,
-                                    textvariable=self._user_var,
-                                    font=("Segoe UI", 10),
-                                    bg=WIDGET, fg=TEXT,
-                                    insertbackground=TEXT,
-                                    relief="flat", bd=6,
-                                    width=36)
+        self._user_entry = ctk.CTkEntry(root,
+                                        textvariable=self._user_var,
+                                        font=FONT,
+                                        fg_color=WIDGET,
+                                        text_color=TEXT,
+                                        border_color=BORDER)
         self._user_entry.pack(fill="x", pady=(2, 12))
 
-        # ── Password ───────────────────────────────────────────────────────────
-        tk.Label(root, text="Password",
-                 bg=PANEL, fg=SUBTEXT,
-                 font=("Segoe UI", 8)).pack(anchor="w")
+        # Password
+        ctk.CTkLabel(root, text="Password",
+                     fg_color="transparent",
+                     text_color=SUBTEXT,
+                     font=FONT_LABEL).pack(anchor="w")
 
         self._pass_var = tk.StringVar()
-        self._pass_entry = tk.Entry(root,
-                                    textvariable=self._pass_var,
-                                    show="●",
-                                    font=("Segoe UI", 10),
-                                    bg=WIDGET, fg=TEXT,
-                                    insertbackground=TEXT,
-                                    relief="flat", bd=6,
-                                    width=36)
+        self._pass_entry = ctk.CTkEntry(root,
+                                        textvariable=self._pass_var,
+                                        show="●",
+                                        font=FONT,
+                                        fg_color=WIDGET,
+                                        text_color=TEXT,
+                                        border_color=BORDER)
         self._pass_entry.pack(fill="x", pady=(2, 6))
 
-        # ── Show password ──────────────────────────────────────────────────────
+        # Show password
         self._show_pass = tk.BooleanVar(value=False)
-        tk.Checkbutton(root,
-                       text="Tampilkan password",
-                       variable=self._show_pass,
-                       command=self._toggle_password,
-                       bg=PANEL, fg=SUBTEXT,
-                       activebackground=PANEL, activeforeground=TEXT,
-                       selectcolor=WIDGET,
-                       font=("Segoe UI", 8),
-                       relief="flat", bd=0).pack(anchor="w", pady=(0, 18))
+        ctk.CTkCheckBox(root,
+                        text="Tampilkan password",
+                        variable=self._show_pass,
+                        command=self._toggle_password,
+                        text_color=SUBTEXT,
+                        fg_color=ACCENT,
+                        hover_color=ACCENT_D,
+                        border_color=BORDER,
+                        checkmark_color="#ffffff",
+                        font=FONT_SMALL).pack(anchor="w", pady=(0, 18))
 
-        # ── Buttons ────────────────────────────────────────────────────────────
-        btn_row = tk.Frame(root, bg=PANEL)
+        # Buttons
+        btn_row = ctk.CTkFrame(root, fg_color="transparent")
         btn_row.pack(fill="x")
 
-        ttk.Button(btn_row, text="💾  Simpan",
-                   command=self._save,
-                   style="Accent.TButton").pack(side="right", padx=(6, 0))
+        ctk.CTkButton(btn_row, text="💾  Simpan",
+                      command=self._save,
+                      **BTN_ACCENT).pack(side="right", padx=(6, 0))
 
         if not self._force:
-            ttk.Button(btn_row, text="Batal",
-                       command=self._cancel,
-                       style="Ghost.TButton").pack(side="right")
+            ctk.CTkButton(btn_row, text="Batal",
+                          command=self._cancel,
+                          **BTN_GHOST).pack(side="right")
 
-        # ── Pre-fill ───────────────────────────────────────────────────────────
+        # Pre-fill
         creds = credential_manager.load()
         if creds.get("username"):
             self._user_var.set(creds["username"])
         if creds.get("password"):
             self._pass_var.set(creds["password"])
 
-        # ── Key bindings ───────────────────────────────────────────────────────
+        # Key bindings
         self._user_entry.bind("<Return>", lambda _: self._pass_entry.focus_set())
         self._pass_entry.bind("<Return>", lambda _: self._save())
         self._user_entry.focus_set()
@@ -124,7 +130,7 @@ class CredentialsDialog(tk.Toplevel):
     # ── Helpers ────────────────────────────────────────────────────────────────
 
     def _toggle_password(self):
-        self._pass_entry.config(show="" if self._show_pass.get() else "●")
+        self._pass_entry.configure(show="" if self._show_pass.get() else "●")
 
     def _center(self, parent):
         pw = parent.winfo_x() + parent.winfo_width()  // 2

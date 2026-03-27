@@ -1,6 +1,9 @@
 # Credentials — jangan di-push ke repository
 config/credentials.json
 
+# Data Excel — berbeda tiap PC
+data.xlsx
+
 # Archive / distribusi
 *.rar
 *.zip

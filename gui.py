@@ -11,6 +11,10 @@ LOG_FILE = os.path.join(BASE_DIR, "error.log")
 
 sys.path.insert(0, BASE_DIR)
 
+import customtkinter as ctk
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("dark-blue")
+
 # Beritahu Windows bahwa app ini DPI-aware agar tidak di-scale paksa
 # Harus dipanggil SEBELUM tkinter window dibuat
 if sys.platform == "win32":

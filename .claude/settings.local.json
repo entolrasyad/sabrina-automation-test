@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"d:/qa/dolphin/ui/views/session_bar.py\")",
+      "Bash(pip install:*)"
+    ]
+  }
+}

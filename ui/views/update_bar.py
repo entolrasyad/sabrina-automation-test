@@ -5,54 +5,62 @@ Shows version info, Check Update and Apply buttons.
 
 import threading
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import messagebox
+import customtkinter as ctk
 
 from ui import updater
+from ui.constants import SUBTEXT, BORDER
+from ui.constants import BTN_GHOST, BTN_WARNING
+from ui.constants import FONT_SMALL
 
-class UpdateBar(ttk.Frame):
+
+class UpdateBar(ctk.CTkFrame):
 
     def __init__(self, parent, app):
-        super().__init__(parent, style="TFrame")
+        super().__init__(parent, fg_color="transparent")
         self._app = app
         self._has_update = False
         self.columnconfigure(0, weight=1)
         self._build()
 
     def _build(self):
-        ttk.Separator(self, orient="horizontal").grid(
-            row=0, column=0, sticky="ew", pady=(0, 6))
+        # Separator
+        ctk.CTkFrame(self, height=1, fg_color=BORDER,
+                     corner_radius=0).grid(row=0, column=0, sticky="ew", pady=(0, 6))
 
-        inner = ttk.Frame(self, style="TFrame")
+        inner = ctk.CTkFrame(self, fg_color="transparent")
         inner.grid(row=1, column=0, sticky="ew")
         inner.columnconfigure(0, weight=1)
 
         # Left: version + status
         self._status_var = tk.StringVar(value=f"App Version: {updater.get_local_version()}")
-        ttk.Label(inner, textvariable=self._status_var,
-                  style="Sub.TLabel").grid(row=0, column=0, sticky="w")
+        ctk.CTkLabel(inner, textvariable=self._status_var,
+                     fg_color="transparent",
+                     text_color=SUBTEXT,
+                     font=FONT_SMALL).grid(row=0, column=0, sticky="w")
 
         # Right: buttons
-        btn_frame = ttk.Frame(inner, style="TFrame")
+        btn_frame = ctk.CTkFrame(inner, fg_color="transparent")
         btn_frame.grid(row=0, column=1, sticky="e")
 
-        self._check_btn = ttk.Button(btn_frame,
-                                     text="🔍  Check Update",
-                                     command=self._check_update,
-                                     style="Ghost.TButton")
+        self._check_btn = ctk.CTkButton(btn_frame,
+                                        text="🔍  Check Update",
+                                        command=self._check_update,
+                                        **BTN_GHOST)
         self._check_btn.pack(side="left", padx=(0, 6))
 
-        self._apply_btn = ttk.Button(btn_frame,
-                                     text="⬆  Download & Apply",
-                                     command=self._apply_update,
-                                     style="Warning.TButton",
-                                     state="disabled")
+        self._apply_btn = ctk.CTkButton(btn_frame,
+                                        text="⬆  Download & Apply",
+                                        command=self._apply_update,
+                                        state="disabled",
+                                        **BTN_GHOST)
         self._apply_btn.pack(side="left")
 
-    # ── Check ──────────────────────────────────────────────────────────────────
+    # ── Check ────────────────────────────────────────────────────────────────────
 
     def _check_update(self):
-        self._check_btn.config(state="disabled", text="🔍  Memeriksa...")
-        self._apply_btn.config(state="disabled")
+        self._check_btn.configure(state="disabled", text="🔍  Memeriksa...")
+        self._apply_btn.configure(state="disabled")
         self._status_var.set("Mengecek versi terbaru...")
 
         def _worker():
@@ -65,20 +73,20 @@ class UpdateBar(ttk.Frame):
         threading.Thread(target=_worker, daemon=True).start()
 
     def _on_check_done(self, available: bool, local: str, remote: str):
-        self._check_btn.config(state="normal", text="🔍  Check Update")
+        self._check_btn.configure(state="normal", text="🔍  Check Update")
         self._has_update = available
         if available:
-            self._apply_btn.config(state="normal")
+            self._apply_btn.configure(state="normal", **BTN_WARNING)
             self._status_var.set(f"✦  Update tersedia! {local} → {remote}")
         else:
-            self._apply_btn.config(state="disabled")
+            self._apply_btn.configure(state="disabled", **BTN_GHOST)
             self._status_var.set(f"✓  Sudah versi terbaru ({local})")
 
     def _on_check_error(self, msg: str):
-        self._check_btn.config(state="normal", text="🔍  Check Update")
+        self._check_btn.configure(state="normal", text="🔍  Check Update")
         self._status_var.set(f"Gagal cek update: {msg}")
 
-    # ── Apply ──────────────────────────────────────────────────────────────────
+    # ── Apply ────────────────────────────────────────────────────────────────────
 
     def _apply_update(self):
         if not messagebox.askyesno(
@@ -88,8 +96,8 @@ class UpdateBar(ttk.Frame):
                 parent=self._app):
             return
 
-        self._check_btn.config(state="disabled")
-        self._apply_btn.config(state="disabled")
+        self._check_btn.configure(state="disabled")
+        self._apply_btn.configure(state="disabled")
         self._status_var.set("Mengunduh update...")
 
         def _worker():
@@ -107,7 +115,7 @@ class UpdateBar(ttk.Frame):
         self._app.after(2000, self._app.logout_then_restart)
 
     def _on_apply_error(self, msg: str):
-        self._check_btn.config(state="normal")
-        self._apply_btn.config(state="normal" if self._has_update else "disabled")
+        self._check_btn.configure(state="normal")
+        self._apply_btn.configure(state="normal" if self._has_update else "disabled")
         self._status_var.set(f"Update gagal: {msg}")
         messagebox.showerror("Update Error", msg, parent=self._app)
