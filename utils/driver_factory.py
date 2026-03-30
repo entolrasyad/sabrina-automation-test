@@ -3,9 +3,13 @@ DriverFactory — membuat instance Chrome WebDriver.
 Dipakai oleh conftest.py (fixture) dan runner.py (GUI mode).
 """
 
+import os
+import shutil
+
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
+from selenium.common.exceptions import WebDriverException
 from webdriver_manager.chrome import ChromeDriverManager
 
 from config.settings import HEADLESS, WINDOW_SIZE, SESSION_DIR
@@ -48,8 +52,18 @@ def create_driver() -> webdriver.Chrome:
     # Aktifkan performance log untuk network capture (CDP)
     options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
 
-    service = Service(ChromeDriverManager().install())
-    driver  = webdriver.Chrome(service=service, options=options)
+    def _install_driver():
+        return Service(ChromeDriverManager().install())
+
+    try:
+        service = _install_driver()
+        driver  = webdriver.Chrome(service=service, options=options)
+    except WebDriverException:
+        # ChromeDriver tidak cocok dengan Chrome — hapus cache dan re-download
+        wdm_cache = os.path.join(os.path.expanduser("~"), ".wdm")
+        shutil.rmtree(wdm_cache, ignore_errors=True)
+        service = _install_driver()
+        driver  = webdriver.Chrome(service=service, options=options)
 
     driver.execute_cdp_cmd(
         "Page.addScriptToEvaluateOnNewDocument",
