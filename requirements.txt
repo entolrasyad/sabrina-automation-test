@@ -12,7 +12,8 @@ openpyxl
 # ── GUI Framework ─────────────────────────────────────────────────────────────
 customtkinter
 
-# ── Windows — embed Chrome ke dalam GUI ───────────────────────────────────────
+# ── Windows — embed Chrome ke dalam GUI (opsional) ────────────────────────────
+# Jika tidak diinstall, Chrome WhatsApp terbuka di jendela terpisah (tidak tertanam di GUI)
 pywin32
 psutil
 
