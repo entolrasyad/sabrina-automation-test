@@ -1,5 +1,5 @@
 """
-gui.py — Entry point for Dolphin Bot Tester
+gui.py — Entry point for Sabrina Bot Tester
 """
 
 import sys

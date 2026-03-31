@@ -3,6 +3,7 @@ ui/views/update_bar.py — Compact update bar (bottom section)
 Shows version info, Check Update and Apply buttons.
 """
 
+import os
 import threading
 import tkinter as tk
 from tkinter import messagebox
@@ -35,12 +36,28 @@ class UpdateBar(ctk.CTkFrame):
         inner.grid(row=1, column=0, sticky="ew")
         inner.columnconfigure(0, weight=1)
 
-        # Left: version + status
+        # Left: icon + version + status
+        left = ctk.CTkFrame(inner, fg_color="transparent")
+        left.grid(row=0, column=0, sticky="w")
+
+        try:
+            from PIL import Image
+            from customtkinter import CTkImage
+            _icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                      "..", "..", "assets", "icon.png")
+            if os.path.exists(_icon_path):
+                _pil = Image.open(_icon_path).resize((18, 18))
+                self._bar_icon = CTkImage(_pil, size=(18, 18))
+                ctk.CTkLabel(left, image=self._bar_icon, text="",
+                             fg_color="transparent").pack(side="left", padx=(0, 5))
+        except Exception:
+            pass
+
         self._status_var = tk.StringVar(value=f"By: Entol Rasyad | App Version: {updater.get_local_version()}")
-        ctk.CTkLabel(inner, textvariable=self._status_var,
+        ctk.CTkLabel(left, textvariable=self._status_var,
                      fg_color="transparent",
                      text_color=SUBTEXT,
-                     font=FONT_SMALL).grid(row=0, column=0, sticky="w")
+                     font=FONT_SMALL).pack(side="left")
 
         # Right: buttons
         btn_frame = ctk.CTkFrame(inner, fg_color="transparent")

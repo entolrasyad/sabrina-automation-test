@@ -172,7 +172,7 @@ class SessionBar(ctk.CTkFrame):
             return
         self._logout_btn.configure(state="disabled")
         self._login_btn.configure(state="disabled")
-        self.set_progress("Logout...")
+        self.set_progress("Sedang Logout. Mohon tunggu...")
 
         driver          = app._driver
         app._driver     = None

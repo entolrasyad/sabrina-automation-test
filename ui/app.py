@@ -22,12 +22,15 @@ class App(ctk.CTk):
 
     EXCEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data.xlsx")
 
+    _ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets")
+
     def __init__(self):
         super().__init__()
         self.title("Sabrina BOT Tester")
         self.resizable(True, True)
         self.configure(fg_color=BG)
         tk.Tk.configure(self, bg=BG)  # sync OS-level window bg agar tidak tembus warna lain
+        self._set_icon()
         self._center_window(1150, 720)
 
         apply_theme()
@@ -59,6 +62,23 @@ class App(ctk.CTk):
             return False
         return True
 
+    def _set_icon(self):
+        import tempfile
+        for name in ("icon2.png", "icon2.ico"):
+            path = os.path.join(self._ASSETS, name)
+            if not os.path.exists(path):
+                continue
+            try:
+                from PIL import Image
+                img = Image.open(path).resize((32, 32))
+                tmp = tempfile.NamedTemporaryFile(suffix=".ico", delete=False)
+                img.save(tmp.name, format="ICO")
+                tmp.close()
+                self.iconbitmap(tmp.name)
+                return
+            except Exception:
+                continue
+
     @staticmethod
     def _get_dpi_scale() -> float:
         try:
@@ -73,13 +93,11 @@ class App(ctk.CTk):
         scale = self._get_dpi_scale()
         sw    = self.winfo_screenwidth()
         sh    = self.winfo_screenheight()
-        # Kurangi ukuran sesuai scale level
-        y_offset = 0
         if scale >= 1.20:    # 125% dan 150% → fullscreen
             self.after(0, lambda: self.state("zoomed"))
             return
         x = (sw - round(w * scale)) // 2
-        y = max(0, (sh - round(h * scale)) // 2 + y_offset)
+        y = max(0, (sh - round(h * scale)) // 2)
         self.minsize(1000, 680)
         self.geometry(f"{w}x{h}+{x}+{y}")
 

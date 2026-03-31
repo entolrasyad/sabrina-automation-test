@@ -11,6 +11,7 @@ openpyxl
 
 # ── GUI Framework ─────────────────────────────────────────────────────────────
 customtkinter
+Pillow
 
 # ── Windows — embed Chrome ke dalam GUI (opsional) ────────────────────────────
 # Jika tidak diinstall, Chrome WhatsApp terbuka di jendela terpisah (tidak tertanam di GUI)

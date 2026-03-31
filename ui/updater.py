@@ -111,7 +111,13 @@ def download_and_apply(on_progress=None) -> None:
 
 
 def restart_app() -> None:
-    """Restart gui.py dengan Python yang sama."""
+    """Install dependencies baru lalu restart gui.py dengan Python yang sama."""
+    req = os.path.join(BASE_DIR, "requirements.txt")
+    if os.path.exists(req):
+        subprocess.call(
+            [sys.executable, "-m", "pip", "install", "-r", req,
+             "--disable-pip-version-check", "--quiet"],
+        )
     gui = os.path.join(BASE_DIR, "gui.py")
     subprocess.Popen([sys.executable, gui])
     sys.exit(0)
