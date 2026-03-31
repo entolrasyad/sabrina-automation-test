@@ -58,7 +58,7 @@ class BulkTab(ctk.CTkFrame):
                      font=FONT,
                      placeholder_text="ketik untuk filter...").pack(side="left", padx=(0, 14))
 
-        self._reload_btn = ctk.CTkButton(toolbar, text="↺  Refresh Data",
+        self._reload_btn = ctk.CTkButton(toolbar, text="↺  Refresh Data Excel",
                                          command=self.load_excel, **BTN_GHOST)
         self._reload_btn.pack(side="left", padx=(0, 6))
 
@@ -102,9 +102,9 @@ class BulkTab(ctk.CTkFrame):
         self._tree.heading("dialog",    text="Dialog",    anchor="w")
         self._tree.heading("score",     text="Score",     anchor="w")
         self._tree.column("no",        width=44,  stretch=False, anchor="center")
-        self._tree.column("user_says", width=190, stretch=False)
-        self._tree.column("dialog",    width=330, stretch=True)
-        self._tree.column("score",     width=160, stretch=True, anchor="w")
+        self._tree.column("user_says", width=220, stretch=True)
+        self._tree.column("dialog",    width=220, stretch=True)
+        self._tree.column("score",     width=220, stretch=True, anchor="w")
 
         self._tree.tag_configure("odd",       background=WIDGET)
         self._tree.tag_configure("even",      background=ROW_ALT)

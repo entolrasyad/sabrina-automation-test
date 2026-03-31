@@ -9,11 +9,12 @@ import tkinter as tk
 import customtkinter as ctk
 
 from pages.dashboard_page import DashboardPage
-from ui.constants import BG, PANEL, WIDGET, HOVER, TEXT, BORDER, FONT_BOLD
+from ui.constants import BG, PANEL, HOVER, ACCENT, ACCENT_D, TEXT, SUBTEXT, BORDER, FONT_BOLD
 from ui.styles import apply_theme
 from ui.views.session_bar import SessionBar
 from ui.views.manual_tab import ManualTab
 from ui.views.bulk_tab import BulkTab
+from ui.views.wa_tab import WATab
 from ui.views.update_bar import UpdateBar
 
 
@@ -23,7 +24,7 @@ class App(ctk.CTk):
 
     def __init__(self):
         super().__init__()
-        self.title("Dolphin Bot Tester")
+        self.title("Sabrina BOT Tester")
         self.resizable(True, True)
         self.configure(fg_color=BG)
         tk.Tk.configure(self, bg=BG)  # sync OS-level window bg agar tidak tembus warna lain
@@ -33,15 +34,20 @@ class App(ctk.CTk):
 
         # ── Session state ────────────────────────────────────────────────────────
         self._driver     = None
+        self._wa_driver  = None
         self._cookie_str = ""
         self._view_state = ""
         self._cancel     = False
 
         self._build_ui()
         self.protocol("WM_DELETE_WINDOW", self._on_close)
-        self.after(50, lambda: self.bulk_tab.load_excel())
+        self.after(50, self._load_all_tabs)
 
     # ── Public Helpers ───────────────────────────────────────────────────────────
+
+    def _load_all_tabs(self):
+        self.bulk_tab.load_excel()
+        self.wa_tab.load_triggers()
 
     def check_ready(self) -> bool:
         from tkinter import messagebox
@@ -98,25 +104,29 @@ class App(ctk.CTk):
             border_width=1,
             border_color=BORDER,
             segmented_button_fg_color=BG,
-            segmented_button_selected_color=WIDGET,
-            segmented_button_selected_hover_color=HOVER,
-            segmented_button_unselected_color=BG,
-            segmented_button_unselected_hover_color=PANEL,
+            segmented_button_selected_color=ACCENT,
+            segmented_button_selected_hover_color=ACCENT_D,
+            segmented_button_unselected_color=PANEL,
+            segmented_button_unselected_hover_color=HOVER,
             text_color=TEXT,
-            text_color_disabled=TEXT,
+            text_color_disabled=SUBTEXT,
             anchor="w",
         )
         tabview.grid(row=2, column=0, sticky="nsew", padx=12, pady=(4, 4))
 
-        tabview.add("  ✏  Manual  ")
-        tabview.add("  📋  Bulk Excel  ")
+        tabview.add("  ✏  Manual Test ")
+        tabview.add("  📋  Bulk Excel Test ")
+        tabview.add("  💬  WhatsApp Test ")
         tabview._segmented_button.configure(font=FONT_BOLD, height=38)
 
-        self.manual_tab = ManualTab(tabview.tab("  ✏  Manual  "), self)
+        self.manual_tab = ManualTab(tabview.tab("  ✏  Manual Test "), self)
         self.manual_tab.pack(fill="both", expand=True)
 
-        self.bulk_tab = BulkTab(tabview.tab("  📋  Bulk Excel  "), self)
+        self.bulk_tab = BulkTab(tabview.tab("  📋  Bulk Excel Test "), self)
         self.bulk_tab.pack(fill="both", expand=True)
+
+        self.wa_tab = WATab(tabview.tab("  💬  WhatsApp Test "), self)
+        self.wa_tab.pack(fill="both", expand=True)
 
         # Update bar (row 3 — bottom)
         self.update_bar = UpdateBar(self, self)
@@ -126,6 +136,12 @@ class App(ctk.CTk):
 
     def _on_close(self):
         self._cancel = True
+        if self._wa_driver:
+            try:
+                self._wa_driver.quit()
+            except Exception:
+                pass
+            self._wa_driver = None
         if self._driver and self._cookie_str:
             self._logout_then_close()
         else:

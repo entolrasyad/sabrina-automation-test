@@ -1,33 +1,43 @@
 """
 ui/constants.py — Color palette & dimension constants
+Light mode — Tokopedia-inspired green accent palette
 """
 
-BG       = "#0e0e14"   # main window background — rich near-black
-PANEL    = "#141420"   # frame / labelframe background
-WIDGET   = "#1c1c2c"   # entry / treeview / text widget bg
-HOVER    = "#252538"   # hover state bg
-ACCENT   = "#7c6af7"   # primary indigo-violet (Linear-style)
-ACCENT2  = "#c084fc"   # purple gradient end
-ACCENT_D = "#5b4fd4"   # deeper indigo for pressed state
-SUCCESS  = "#34d399"   # emerald — credential ready
-DANGER   = "#f87171"   # red — credential not ready / stop
-WARNING  = "#fb923c"   # warm orange
-TEXT     = "#ededf0"   # primary text — warm near-white
-SUBTEXT  = "#6b7280"   # secondary / placeholder text
-BORDER   = "#232336"   # border / separator
-SEL_BG   = "#4338ca"   # treeview selection bg
-ROW_ALT  = "#111120"   # alternate treeview row
+# ── Background hierarchy ───────────────────────────────────────────────────────
+BG       = "#EEF1F8"   # main window bg — soft blue-gray
+PANEL    = "#FFFFFF"   # card / panel — pure white
+WIDGET   = "#F4F6FB"   # input / treeview cell bg
+HOVER    = "#E4E9F5"   # hover state
+
+# ── Accent — Tokopedia green ───────────────────────────────────────────────────
+ACCENT   = "#03AC0E"   # Tokopedia primary green
+ACCENT2  = "#05C910"   # lighter green (gradient)
+ACCENT_D = "#028A0B"   # deep green — pressed / hover
+
+# ── Status ─────────────────────────────────────────────────────────────────────
+SUCCESS  = "#03AC0E"   # green — ready
+DANGER   = "#E53E3E"   # red — error / stop
+WARNING  = "#D97706"   # amber — caution
+
+# ── Text ───────────────────────────────────────────────────────────────────────
+TEXT     = "#1A202C"   # near-black
+SUBTEXT  = "#718096"   # slate gray — secondary / placeholder
+
+# ── Border & Selection ─────────────────────────────────────────────────────────
+BORDER   = "#CBD5E0"   # light border
+SEL_BG   = "#C6F6D5"   # mint green — treeview selection
+ROW_ALT  = "#F7FAFC"   # alternate treeview row
 
 # ── Font scale ────────────────────────────────────────────────────────────────
 FONT         = ("Segoe UI", 13)
 FONT_BOLD    = ("Segoe UI", 13, "bold")
 FONT_SMALL   = ("Segoe UI", 11)
-FONT_LABEL   = ("Segoe UI", 10)   # field labels (Username, Password, dll)
+FONT_LABEL   = ("Segoe UI", 10)
 
-# ── CTkButton presets ──────────────────────────────────────────────────────────
+# ── CTkButton presets ─────────────────────────────────────────────────────────
 BTN_ACCENT  = dict(fg_color=ACCENT,    hover_color=ACCENT_D,  text_color="#ffffff",  font=FONT_BOLD)
-BTN_DANGER  = dict(fg_color="#3d2233", hover_color="#502a3e", text_color=DANGER,     font=FONT)
-BTN_WARNING = dict(fg_color="#3d3010", hover_color="#524018", text_color=WARNING,    font=FONT)
+BTN_DANGER  = dict(fg_color="#FFF5F5", hover_color="#FED7D7", text_color=DANGER,     font=FONT)
+BTN_WARNING = dict(fg_color="#FFFBEB", hover_color="#FEF3C7", text_color=WARNING,    font=FONT)
 BTN_GHOST   = dict(fg_color=PANEL,     hover_color=HOVER,     text_color=SUBTEXT,    font=FONT,
                    border_width=1, border_color=BORDER)
 BTN_DEFAULT = dict(fg_color=WIDGET,    hover_color=HOVER,     text_color=TEXT,       font=FONT)

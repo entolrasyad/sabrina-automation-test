@@ -14,6 +14,9 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 from config.settings import HEADLESS, WINDOW_SIZE, SESSION_DIR
 
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+WA_SESSION_DIR = os.path.join(_PROJECT_ROOT, "session", "whatsapp")
+
 
 def create_driver() -> webdriver.Chrome:
     """
@@ -71,4 +74,37 @@ def create_driver() -> webdriver.Chrome:
     )
     driver.set_page_load_timeout(30)
 
+    return driver
+
+
+def create_wa_driver() -> webdriver.Chrome:
+    """Chrome terpisah untuk WhatsApp Web. Session disimpan di session/whatsapp/."""
+    os.makedirs(WA_SESSION_DIR, exist_ok=True)
+
+    options = Options()
+    options.add_argument(f"--user-data-dir={os.path.abspath(WA_SESSION_DIR)}")
+    options.add_argument("--kiosk")                          # fullscreen, hapus semua UI Chrome
+    options.add_argument("--window-position=-10000,-10000")  # sembunyikan sebelum di-embed
+    options.add_argument("--disable-features=MediaQueryPrefersDarkMode")  # paksa light mode
+    options.add_argument("--disable-notifications")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--log-level=3")
+    options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    options.add_experimental_option("useAutomationExtension", False)
+
+    def _install_driver():
+        return Service(ChromeDriverManager().install())
+
+    try:
+        service = _install_driver()
+        driver  = webdriver.Chrome(service=service, options=options)
+    except WebDriverException:
+        wdm_cache = os.path.join(os.path.expanduser("~"), ".wdm")
+        shutil.rmtree(wdm_cache, ignore_errors=True)
+        service = _install_driver()
+        driver  = webdriver.Chrome(service=service, options=options)
+
+    driver.set_page_load_timeout(30)
     return driver

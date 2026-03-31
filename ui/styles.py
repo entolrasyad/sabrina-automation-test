@@ -7,7 +7,7 @@ import tkinter as tk
 from tkinter import ttk
 
 from .constants import (
-    PANEL, WIDGET, HOVER,
+    BG, PANEL, WIDGET, HOVER,
     TEXT, SUBTEXT, BORDER, SEL_BG,
 )
 
@@ -31,26 +31,26 @@ def apply_theme(_root=None) -> None:
     )
     style.layout("Treeview", [("Treeview.treearea", {"sticky": "nswe"})])
     style.configure("Treeview.Heading",
-        background=PANEL, foreground=SUBTEXT,
-        bordercolor=PANEL, relief="flat",
+        background=BG, foreground=SUBTEXT,
+        bordercolor=BORDER, relief="flat",
         font=("Segoe UI", 9, "bold"),
     )
     style.map("Treeview",
         background=[("selected", SEL_BG)],
-        foreground=[("selected", "#ffffff")],
+        foreground=[("selected", TEXT)],
     )
     style.map("Treeview.Heading",
         background=[("active", HOVER)],
         foreground=[("active", TEXT)],
     )
-    # Scrollbar — slim, borderless, matches dark theme
+    # Scrollbar — slim, borderless, matches light theme
     style.configure("TScrollbar",
-        background=WIDGET, troughcolor=PANEL,
-        bordercolor=PANEL, arrowcolor=PANEL,
+        background=BORDER, troughcolor=BG,
+        bordercolor=BG, arrowcolor=BG,
         relief="flat", width=8, arrowsize=0,
     )
     style.map("TScrollbar",
-        background=[("active", HOVER), ("disabled", PANEL)],
+        background=[("active", SUBTEXT), ("disabled", BG)],
     )
 
 

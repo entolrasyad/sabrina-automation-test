@@ -12,8 +12,8 @@ from ui.constants import PANEL, WIDGET, TEXT, SUBTEXT, BORDER
 from ui.constants import BTN_ACCENT, BTN_WARNING
 from ui.constants import FONT, FONT_SMALL
 
-BUBBLE_USER = "#1a4731"   # dark green — pesan terkirim
-BUBBLE_BOT  = "#162032"   # dark navy  — balasan bot
+BUBBLE_USER = "#03AC0E"   # Tokopedia green — pesan terkirim
+BUBBLE_BOT  = "#EEF1F8"   # soft blue-gray — balasan bot
 FONT_CHAT   = ("Segoe UI", 10)
 
 

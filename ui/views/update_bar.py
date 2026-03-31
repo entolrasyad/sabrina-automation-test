@@ -10,8 +10,11 @@ import customtkinter as ctk
 
 from ui import updater
 from ui.constants import SUBTEXT, BORDER
-from ui.constants import BTN_GHOST, BTN_WARNING
-from ui.constants import FONT_SMALL
+from ui.constants import BTN_GHOST, BTN_WARNING  # dipakai oleh _BTN_MINI_*
+from ui.constants import FONT_SMALL, FONT_LABEL
+
+_BTN_MINI_GHOST   = {**BTN_GHOST,   "font": FONT_LABEL, "height": 24}
+_BTN_MINI_WARNING = {**BTN_WARNING, "font": FONT_LABEL, "height": 24}
 
 
 class UpdateBar(ctk.CTkFrame):
@@ -33,7 +36,7 @@ class UpdateBar(ctk.CTkFrame):
         inner.columnconfigure(0, weight=1)
 
         # Left: version + status
-        self._status_var = tk.StringVar(value=f"App Version: {updater.get_local_version()}")
+        self._status_var = tk.StringVar(value=f"By: Entol Rasyad | App Version: {updater.get_local_version()}")
         ctk.CTkLabel(inner, textvariable=self._status_var,
                      fg_color="transparent",
                      text_color=SUBTEXT,
@@ -46,14 +49,14 @@ class UpdateBar(ctk.CTkFrame):
         self._check_btn = ctk.CTkButton(btn_frame,
                                         text="🔍  Check Update",
                                         command=self._check_update,
-                                        **BTN_GHOST)
+                                        **_BTN_MINI_GHOST)
         self._check_btn.pack(side="left", padx=(0, 6))
 
         self._apply_btn = ctk.CTkButton(btn_frame,
                                         text="⬆  Download & Apply",
                                         command=self._apply_update,
                                         state="disabled",
-                                        **BTN_GHOST)
+                                        **_BTN_MINI_GHOST)
         self._apply_btn.pack(side="left")
 
     # ── Check ────────────────────────────────────────────────────────────────────
@@ -61,7 +64,7 @@ class UpdateBar(ctk.CTkFrame):
     def _check_update(self):
         self._check_btn.configure(state="disabled", text="🔍  Memeriksa...")
         self._apply_btn.configure(state="disabled")
-        self._status_var.set("Mengecek versi terbaru...")
+        self._status_var.set("By: Entol Rasyad | Mengecek versi terbaru...")
 
         def _worker():
             try:
@@ -76,15 +79,15 @@ class UpdateBar(ctk.CTkFrame):
         self._check_btn.configure(state="normal", text="🔍  Check Update")
         self._has_update = available
         if available:
-            self._apply_btn.configure(state="normal", **BTN_WARNING)
+            self._apply_btn.configure(state="normal", **_BTN_MINI_WARNING)
             self._status_var.set(f"✦  Update tersedia! {local} → {remote}")
         else:
-            self._apply_btn.configure(state="disabled", **BTN_GHOST)
-            self._status_var.set(f"✓  Sudah versi terbaru ({local})")
+            self._apply_btn.configure(state="disabled", **_BTN_MINI_GHOST)
+            self._status_var.set(f"By: Entol Rasyad | ✓  Sudah versi terbaru ({local})")
 
     def _on_check_error(self, msg: str):
         self._check_btn.configure(state="normal", text="🔍  Check Update")
-        self._status_var.set(f"Gagal cek update: {msg}")
+        self._status_var.set(f"By: Entol Rasyad | Gagal cek update: {msg}")
 
     # ── Apply ────────────────────────────────────────────────────────────────────
 

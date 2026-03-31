@@ -12,4 +12,8 @@ openpyxl
 # ── GUI Framework ─────────────────────────────────────────────────────────────
 customtkinter
 
+# ── Windows — embed Chrome ke dalam GUI ───────────────────────────────────────
+pywin32
+psutil
+
 # ── Note: tkinter is bundled with Python, no install needed ───────────────────

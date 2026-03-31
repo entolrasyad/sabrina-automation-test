@@ -4,6 +4,9 @@ config/credentials.json
 # Data Excel — berbeda tiap PC
 data.xlsx
 
+# Sesi browser (Sabrina login + WhatsApp) — berisi cookies/login data, beda tiap PC
+session/
+
 # Archive / distribusi
 *.rar
 *.zip
@@ -17,6 +20,9 @@ __pycache__/
 
 # Test cache
 .pytest_cache/
+
+# ChromeDriver cache (webdriver-manager)
+.wdm/
 
 # Error log runtime
 error.log

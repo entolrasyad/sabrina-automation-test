@@ -27,15 +27,8 @@ class SessionBar(ctk.CTkFrame):
         self._build()
 
     def _build(self):
-        # Title
-        ctk.CTkLabel(self, text="  ⚙  Sabrina BOT Tester",
-                     fg_color="transparent",
-                     text_color=SUBTEXT,
-                     font=FONT_SMALL).grid(
-                         row=0, column=0, columnspan=2, sticky="w", padx=12, pady=(8, 0))
-
         inner = ctk.CTkFrame(self, fg_color="transparent")
-        inner.grid(row=1, column=0, columnspan=2, sticky="ew", padx=12, pady=(2, 4))
+        inner.grid(row=0, column=0, columnspan=2, sticky="ew", padx=12, pady=(10, 4))
         inner.columnconfigure(0, weight=1)
 
         self._cred_label = ctk.CTkLabel(inner, text="",
@@ -65,16 +58,16 @@ class SessionBar(ctk.CTkFrame):
                       command=self._open_credentials_dialog,
                       **BTN_GHOST).pack(side="left")
 
-        # Row 2: login progress (left) + bulk progress (right)
+        # Row 1: login progress (left) + bulk progress (right)
         self._progress_var = tk.StringVar(value="Belum ada credentials. Klik Login.")
         ctk.CTkLabel(self, textvariable=self._progress_var,
                      fg_color="transparent",
                      text_color=SUBTEXT,
-                     font=FONT_SMALL).grid(row=2, column=0, sticky="w",
+                     font=FONT_SMALL).grid(row=1, column=0, sticky="w",
                                            padx=12, pady=(0, 10))
 
         bulk_row = ctk.CTkFrame(self, fg_color="transparent")
-        bulk_row.grid(row=2, column=1, sticky="e", padx=(0, 12), pady=(0, 10))
+        bulk_row.grid(row=1, column=1, sticky="e", padx=(0, 12), pady=(0, 10))
 
         self._bulk_status_var = tk.StringVar(value="")
         ctk.CTkLabel(bulk_row, textvariable=self._bulk_status_var,
@@ -99,11 +92,11 @@ class SessionBar(ctk.CTkFrame):
         app = self._app
         ready = bool(app._cookie_str and app._view_state)
         if ready:
-            self._cred_label.configure(text="  ●  Credential READY", text_color=SUCCESS)
+            self._cred_label.configure(text="●  Credential READY", text_color=SUCCESS)
             self._login_btn.configure(text="↺  Refresh Credentials")
             self._logout_btn.configure(state="normal")
         else:
-            self._cred_label.configure(text="  ●  Credential NOT READY", text_color=DANGER)
+            self._cred_label.configure(text="●  Credential NOT READY", text_color=DANGER)
             self._login_btn.configure(text="⚡  Login")
             self._logout_btn.configure(state="disabled")
 
