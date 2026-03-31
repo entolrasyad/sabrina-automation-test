@@ -103,11 +103,17 @@ def selenium_login(on_progress, on_done, on_error) -> None:
         cookie_str = "; ".join(f"{k}={v}" for k, v in cookies.items())
 
         on_progress("Navigasi ke Bot Settings...")
-        wait.until(EC.element_to_be_clickable((By.ID, "menuform:mainMenu_7"))).click()
+        wait_menu = WebDriverWait(driver, 5)
+        try:
+            wait_menu.until(EC.element_to_be_clickable((By.ID, "menuform:mainMenu_7"))).click()
+            submenu_id = "menuform:mainMenu_7_0"
+        except TimeoutException:
+            wait.until(EC.element_to_be_clickable((By.ID, "menuform:mainMenu_4"))).click()
+            submenu_id = "menuform:mainMenu_4_0"
         time.sleep(1)
 
         on_progress("Masuk ke halaman /dolphin/bot...")
-        wait.until(EC.element_to_be_clickable((By.ID, "menuform:mainMenu_7_0"))).click()
+        wait.until(EC.element_to_be_clickable((By.ID, submenu_id))).click()
         WebDriverWait(driver, 15).until(lambda d: "/dolphin/bot" in d.current_url)
         time.sleep(1)
 

@@ -75,12 +75,9 @@ class App(ctk.CTk):
         sh    = self.winfo_screenheight()
         # Kurangi ukuran sesuai scale level
         y_offset = 0
-        if scale >= 1.45:    # 150% → langsung fullscreen
+        if scale >= 1.20:    # 125% dan 150% → fullscreen
             self.after(0, lambda: self.state("zoomed"))
             return
-        elif scale >= 1.20:  # 125%
-            h = round(h * 0.80)
-            y_offset = -80
         x = (sw - round(w * scale)) // 2
         y = max(0, (sh - round(h * scale)) // 2 + y_offset)
         self.minsize(1000, 680)

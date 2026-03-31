@@ -91,6 +91,7 @@ class WATab(ctk.CTkFrame):
         "prod": "8121214017", # Sabrina Prod
     }
 
+    _CSS_CHAT_NAV = 'button[aria-label="Chats"][data-navbar-item="true"]'
     _CSS_SEARCH = (
         'input[role="textbox"][data-tab="3"],'
         'input[aria-label="Search or start a new chat"],'
@@ -130,6 +131,13 @@ class WATab(ctk.CTkFrame):
         wait    = WebDriverWait(driver, 15)
         success = False
         try:
+            # Pastikan panel Chats aktif sebelum search
+            try:
+                chat_nav = driver.find_element(By.CSS_SELECTOR, self._CSS_CHAT_NAV)
+                chat_nav.click()
+                time.sleep(0.3)
+            except Exception:
+                pass
             search = wait.until(EC.element_to_be_clickable(
                 (By.CSS_SELECTOR, self._CSS_SEARCH)))
             search.click()
@@ -147,6 +155,15 @@ class WATab(ctk.CTkFrame):
                 'div[contenteditable="true"][data-tab="10"],'
                 'footer div[contenteditable="true"]')))
             success = True
+            # Sembunyikan panel kiri: klik New Chat → New Community
+            try:
+                driver.find_element(
+                    By.CSS_SELECTOR, 'button[data-tab="2"][aria-label="New chat"]').click()
+                time.sleep(0.4)
+                driver.find_element(
+                    By.CSS_SELECTOR, 'div[aria-label="New community"][role="button"]').click()
+            except Exception:
+                pass
             self._app.after(0, lambda: self._status_var.set(
                 f"Chat Sabrina {env.capitalize()} Terbuka"))
         except TimeoutException:
@@ -332,11 +349,13 @@ class WATab(ctk.CTkFrame):
                 })
             except Exception:
                 pass
-            # Di scale 150% konten terlalu besar — zoom out ke 60%
-            if self._app._get_dpi_scale() >= 1.45:
+            # Zoom out sesuai DPI scale agar konten tidak terlalu besar
+            scale = self._app._get_dpi_scale()
+            zoom  = 0.4 if scale >= 1.45 else 0.5 if scale >= 1.20 else None
+            if zoom:
                 try:
                     driver.execute_cdp_cmd("Emulation.setPageScaleFactor",
-                                           {"pageScaleFactor": 0.6})
+                                           {"pageScaleFactor": zoom})
                 except Exception:
                     pass
             self._app.after(800, lambda: self._embed_chrome(sid))
