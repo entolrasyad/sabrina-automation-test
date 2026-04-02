@@ -4,7 +4,6 @@ Dipakai oleh conftest.py (fixture) dan runner.py (GUI mode).
 """
 
 import os
-import sys
 import shutil
 
 from selenium import webdriver
@@ -18,29 +17,16 @@ from config.settings import HEADLESS, WINDOW_SIZE, SESSION_DIR
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WA_SESSION_DIR = os.path.join(_PROJECT_ROOT, "session", "whatsapp")
 
-# Deteksi arsitektur OS untuk force download ChromeDriver yang benar
-_OS_TYPE = "win64" if (sys.platform == "win32" and sys.maxsize > 2**32) else \
-           "win32" if sys.platform == "win32" else None
-
-
-def _make_chromedriver_manager(force=False):
-    kwargs = {"cache_valid_range": 0} if force else {}
-    if _OS_TYPE:
-        try:
-            from webdriver_manager.core.os_manager import OperationSystemManager
-            kwargs["os_system_manager"] = OperationSystemManager(_OS_TYPE)
-        except Exception:
-            pass
-    return ChromeDriverManager(**kwargs)
-
-
-def _install_driver(force=False):
-    return Service(_make_chromedriver_manager(force).install())
-
 
 def _clear_wdm_cache():
     wdm_cache = os.path.join(os.path.expanduser("~"), ".wdm")
     shutil.rmtree(wdm_cache, ignore_errors=True)
+
+
+def _install_driver(force=False):
+    if force:
+        _clear_wdm_cache()
+    return Service(ChromeDriverManager().install())
 
 
 def create_driver() -> webdriver.Chrome:
