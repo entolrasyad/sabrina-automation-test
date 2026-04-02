@@ -61,8 +61,8 @@ def create_driver() -> webdriver.Chrome:
     try:
         service = _install_driver()
         driver  = webdriver.Chrome(service=service, options=options)
-    except WebDriverException:
-        # ChromeDriver tidak cocok dengan Chrome — hapus cache dan re-download
+    except (WebDriverException, OSError):
+        # ChromeDriver tidak cocok / arsitektur salah — hapus cache dan re-download
         wdm_cache = os.path.join(os.path.expanduser("~"), ".wdm")
         shutil.rmtree(wdm_cache, ignore_errors=True)
         service = _install_driver()
@@ -100,7 +100,7 @@ def create_wa_driver() -> webdriver.Chrome:
     try:
         service = _install_driver()
         driver  = webdriver.Chrome(service=service, options=options)
-    except WebDriverException:
+    except (WebDriverException, OSError):
         wdm_cache = os.path.join(os.path.expanduser("~"), ".wdm")
         shutil.rmtree(wdm_cache, ignore_errors=True)
         service = _install_driver()
