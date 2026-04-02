@@ -1,6 +1,5 @@
 # ── Browser Automation ────────────────────────────────────────────────────────
-selenium
-webdriver-manager
+selenium>=4.6
 
 # ── HTTP & Network ─────────────────────────────────────────────────────────────
 requests
