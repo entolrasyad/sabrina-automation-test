@@ -4,6 +4,7 @@ Dipakai oleh conftest.py (fixture) dan runner.py (GUI mode).
 """
 
 import os
+import sys
 import shutil
 
 from selenium import webdriver
@@ -16,6 +17,30 @@ from config.settings import HEADLESS, WINDOW_SIZE, SESSION_DIR
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WA_SESSION_DIR = os.path.join(_PROJECT_ROOT, "session", "whatsapp")
+
+# Deteksi arsitektur OS untuk force download ChromeDriver yang benar
+_OS_TYPE = "win64" if (sys.platform == "win32" and sys.maxsize > 2**32) else \
+           "win32" if sys.platform == "win32" else None
+
+
+def _make_chromedriver_manager(force=False):
+    kwargs = {"cache_valid_range": 0} if force else {}
+    if _OS_TYPE:
+        try:
+            from webdriver_manager.core.os_manager import OperationSystemManager
+            kwargs["os_system_manager"] = OperationSystemManager(_OS_TYPE)
+        except Exception:
+            pass
+    return ChromeDriverManager(**kwargs)
+
+
+def _install_driver(force=False):
+    return Service(_make_chromedriver_manager(force).install())
+
+
+def _clear_wdm_cache():
+    wdm_cache = os.path.join(os.path.expanduser("~"), ".wdm")
+    shutil.rmtree(wdm_cache, ignore_errors=True)
 
 
 def create_driver() -> webdriver.Chrome:
@@ -55,17 +80,12 @@ def create_driver() -> webdriver.Chrome:
     # Aktifkan performance log untuk network capture (CDP)
     options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
 
-    def _install_driver():
-        return Service(ChromeDriverManager().install())
-
     try:
         service = _install_driver()
         driver  = webdriver.Chrome(service=service, options=options)
     except (WebDriverException, OSError):
-        # ChromeDriver tidak cocok / arsitektur salah — hapus cache dan re-download
-        wdm_cache = os.path.join(os.path.expanduser("~"), ".wdm")
-        shutil.rmtree(wdm_cache, ignore_errors=True)
-        service = _install_driver()
+        _clear_wdm_cache()
+        service = _install_driver(force=True)
         driver  = webdriver.Chrome(service=service, options=options)
 
     driver.execute_cdp_cmd(
@@ -94,16 +114,12 @@ def create_wa_driver() -> webdriver.Chrome:
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_experimental_option("useAutomationExtension", False)
 
-    def _install_driver():
-        return Service(ChromeDriverManager().install())
-
     try:
         service = _install_driver()
         driver  = webdriver.Chrome(service=service, options=options)
     except (WebDriverException, OSError):
-        wdm_cache = os.path.join(os.path.expanduser("~"), ".wdm")
-        shutil.rmtree(wdm_cache, ignore_errors=True)
-        service = _install_driver()
+        _clear_wdm_cache()
+        service = _install_driver(force=True)
         driver  = webdriver.Chrome(service=service, options=options)
 
     driver.set_page_load_timeout(30)
