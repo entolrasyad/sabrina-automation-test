@@ -165,6 +165,12 @@ class App(ctk.CTk):
                     self._driver.quit()
                 except Exception:
                     pass
+            # Logout worker tambahan jika ada, tunggu selesai lalu tutup
+            if hasattr(self, "bulk_tab"):
+                t = threading.Thread(
+                    target=self.bulk_tab.logout_all_workers, daemon=False)
+                t.start()
+                t.join(timeout=25)
             self.destroy()
 
     def _logout_then_close(self):
@@ -203,6 +209,13 @@ class App(ctk.CTk):
         self._view_state = ""
 
         def _worker():
+            # Logout additional workers paralel dengan logout main account
+            worker_thread = None
+            if hasattr(self, "bulk_tab"):
+                worker_thread = threading.Thread(
+                    target=self.bulk_tab.logout_all_workers, daemon=True)
+                worker_thread.start()
+
             try:
                 DashboardPage(driver).logout()
             except Exception:
@@ -212,6 +225,10 @@ class App(ctk.CTk):
                     driver.quit()
                 except Exception:
                     pass
+
+            if worker_thread:
+                worker_thread.join(timeout=20)
+
             self.after(0, _finish)
 
         def _finish():

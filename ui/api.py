@@ -70,25 +70,21 @@ def call_bot_api(cookie_str: str, view_state: str, user_says: str) -> dict:
 
 # ── Selenium Login ──────────────────────────────────────────────────────────────
 
-def selenium_login(on_progress, on_done, on_error) -> None:
-    """
-    Runs Selenium login flow in a background thread.
-    Callbacks must schedule UI updates via app.after(0, ...).
-    """
+def _selenium_login_impl(username: str, password: str,
+                         on_progress, on_done, on_error) -> None:
     driver = None
     try:
-        on_progress("Proses Login sedang berjalan. Step (1/9)") # on_progress("Memulai browser...")
+        on_progress("Proses Login sedang berjalan. Step (1/9)")
         driver = create_driver()
         wait = WebDriverWait(driver, ACTION_TIMEOUT)
 
-        on_progress("Proses Login sedang berjalan. Step (2/9)") # on_progress("Membuka halaman login...")
-        creds = credential_manager.load()
+        on_progress("Proses Login sedang berjalan. Step (2/9)")
         driver.get(LOGIN_URL)
-        wait.until(EC.element_to_be_clickable((By.ID, "formLogin:emailDisplay"))).send_keys(creds["username"])
-        wait.until(EC.element_to_be_clickable((By.ID, "formLogin:password"))).send_keys(creds["password"])
+        wait.until(EC.element_to_be_clickable((By.ID, "formLogin:emailDisplay"))).send_keys(username)
+        wait.until(EC.element_to_be_clickable((By.ID, "formLogin:password"))).send_keys(password)
         wait.until(EC.element_to_be_clickable((By.ID, "formLogin:btnDoLogin"))).click()
 
-        on_progress("Proses Login sedang berjalan. Step (3/9)") # on_progress("Menunggu redirect setelah login...")
+        on_progress("Proses Login sedang berjalan. Step (3/9)")
         try:
             WebDriverWait(driver, 15).until(lambda d: LOGIN_URL not in d.current_url)
         except TimeoutException:
@@ -98,11 +94,11 @@ def selenium_login(on_progress, on_done, on_error) -> None:
             on_error(f"Login gagal: {msg}")
             return
 
-        on_progress("Proses Login sedang berjalan. Step (4/9)") # on_progress("Mengambil cookie session...")
+        on_progress("Proses Login sedang berjalan. Step (4/9)")
         cookies    = {c["name"]: c["value"] for c in driver.get_cookies()}
         cookie_str = "; ".join(f"{k}={v}" for k, v in cookies.items())
 
-        on_progress("Proses Login sedang berjalan. Step (5/9)") # on_progress("Navigasi ke Bot Settings...")
+        on_progress("Proses Login sedang berjalan. Step (5/9)")
         wait_menu = WebDriverWait(driver, 5)
         try:
             wait_menu.until(EC.element_to_be_clickable((By.ID, "menuform:mainMenu_7"))).click()
@@ -112,16 +108,16 @@ def selenium_login(on_progress, on_done, on_error) -> None:
             submenu_id = "menuform:mainMenu_4_0"
         time.sleep(1)
 
-        on_progress("Proses Login sedang berjalan. Step (6/9)") # on_progress("Masuk ke halaman /dolphin/bot...")
+        on_progress("Proses Login sedang berjalan. Step (6/9)")
         wait.until(EC.element_to_be_clickable((By.ID, submenu_id))).click()
         WebDriverWait(driver, 15).until(lambda d: "/dolphin/bot" in d.current_url)
         time.sleep(1)
 
-        on_progress("Proses Login sedang berjalan. Step (7/9)") # on_progress("Klik tombol Emulator...")
+        on_progress("Proses Login sedang berjalan. Step (7/9)")
         wait.until(EC.element_to_be_clickable((By.ID, "formBot:bot:4:btnEmulator"))).click()
         time.sleep(1)
 
-        on_progress("Proses Login sedang berjalan. Step (8/9)") # on_progress("Mengirim pesan warm-up untuk mendapatkan ViewState...")
+        on_progress("Proses Login sedang berjalan. Step (8/9)")
         textarea = wait.until(EC.element_to_be_clickable((By.ID, "formBot:userSays")))
         textarea.clear()
         textarea.send_keys("test")
@@ -131,7 +127,7 @@ def selenium_login(on_progress, on_done, on_error) -> None:
         wait.until(EC.element_to_be_clickable((By.ID, "formBot:j_id_ns"))).click()
         time.sleep(3)
 
-        on_progress("Proses Login sedang berjalan. Step (9/9)") # on_progress("Mengekstrak ViewState dari network log...")
+        on_progress("Proses Login sedang berjalan. Step (9/9)")
         view_state = ""
         for entry in driver.get_log("performance"):
             msg = json.loads(entry["message"])["message"]
@@ -161,3 +157,16 @@ def selenium_login(on_progress, on_done, on_error) -> None:
             except Exception:
                 pass
         on_error(str(exc))
+
+
+def selenium_login(on_progress, on_done, on_error) -> None:
+    """Login menggunakan credentials dari credential_manager (akun utama)."""
+    creds = credential_manager.load()
+    _selenium_login_impl(creds["username"], creds["password"],
+                         on_progress, on_done, on_error)
+
+
+def selenium_login_with_creds(username: str, password: str,
+                               on_progress, on_done, on_error) -> None:
+    """Login dengan credentials eksplisit (untuk additional workers)."""
+    _selenium_login_impl(username, password, on_progress, on_done, on_error)
