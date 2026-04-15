@@ -14,9 +14,10 @@ import customtkinter as ctk
 
 from ui.constants import (WIDGET, ROW_ALT, SUCCESS, DANGER, SUBTEXT, PANEL,
                            TEXT, BORDER, ACCENT_D)
-from ui.constants import BTN_ACCENT, BTN_DANGER, BTN_GHOST
+from ui.constants import BTN_ACCENT, BTN_DANGER, BTN_GHOST, BTN_BLUE, BTN_SUBTLE
 from ui.constants import FONT, FONT_SMALL, FONT_BOLD
 from ui.api import call_bot_api, selenium_login_with_creds
+from ui.views.session_bar import _short_login_error
 
 CHECKPOINT = 10
 
@@ -84,7 +85,7 @@ class BulkTab(ctk.CTkFrame):
                                          command=self.load_excel, **BTN_GHOST)
         self._reload_btn.pack(side="left", padx=(0, 6))
 
-        self._run_btn = ctk.CTkButton(toolbar, text="▶  Mulai",
+        self._run_btn = ctk.CTkButton(toolbar, text="▷ Start",
                                       command=self._run, **BTN_ACCENT)
         self._run_btn.pack(side="left")
 
@@ -107,21 +108,24 @@ class BulkTab(ctk.CTkFrame):
         # Tombol buka data.xlsx — float kanan
         ctk.CTkButton(toolbar, text="📂  Buka Data Excel",
                       command=self._open_excel_file,
-                      **BTN_GHOST).pack(side="right")
+                      **BTN_BLUE).pack(side="right")
 
     def _build_worker_panel(self):
-        """Strip tipis di bawah toolbar: main worker + tombol tambah worker."""
+        """Strip tipis di bawah toolbar: main worker + scrollable cards + tombol tambah."""
         outer = tk.Frame(self, bg=PANEL, bd=0, highlightthickness=0)
         outer.grid(row=1, column=0, sticky="ew", padx=14, pady=(0, 4))
+        # col 2 (canvas) mengisi sisa ruang
+        outer.columnconfigure(2, weight=1)
 
+        # ── "Workers :" label ──
         ctk.CTkLabel(outer, text="Workers :",
                      fg_color="transparent", text_color=SUBTEXT,
-                     font=FONT_SMALL).pack(side="left", padx=(0, 8))
+                     font=FONT_SMALL).grid(row=0, column=0, padx=(0, 8), pady=1)
 
-        # Main worker card
+        # ── Main worker card ──
         main_card = ctk.CTkFrame(outer, fg_color=WIDGET, corner_radius=6,
                                  border_width=0)
-        main_card.pack(side="left", padx=(0, 6))
+        main_card.grid(row=0, column=1, padx=(0, 6), pady=1)
 
         self._main_dot = ctk.CTkLabel(main_card, text="●", text_color=SUBTEXT,
                                       fg_color="transparent", font=FONT_SMALL)
@@ -136,16 +140,57 @@ class BulkTab(ctk.CTkFrame):
                      fg_color="transparent", text_color=SUBTEXT,
                      font=FONT_SMALL).pack(side="left", padx=(0, 6), pady=1)
 
-        # Container untuk worker cards tambahan — tk.Frame agar tidak inflate
-        self._worker_cards_frame = tk.Frame(outer, bg=PANEL, bd=0,
-                                            highlightthickness=0)
-        self._worker_cards_frame.pack(side="left")
+        # ── Scrollable area untuk worker cards tambahan ──
+        self._workers_canvas = tk.Canvas(
+            outer, bg=PANEL, bd=0, highlightthickness=0, height=30)
+        self._workers_canvas.grid(row=0, column=2, sticky="ew", pady=1)
 
-        # Tombol Add Worker
+        self._workers_hbar = tk.Scrollbar(
+            outer, orient="horizontal",
+            command=self._workers_canvas.xview)
+        self._workers_hbar.grid(row=1, column=2, sticky="ew")
+        self._workers_canvas.configure(xscrollcommand=self._workers_hbar.set)
+
+        self._worker_cards_frame = tk.Frame(
+            self._workers_canvas, bg=PANEL, bd=0, highlightthickness=0)
+        self._canvas_win = self._workers_canvas.create_window(
+            (0, 0), window=self._worker_cards_frame, anchor="nw")
+
+        # Update scroll region setiap kali cards berubah ukuran
+        self._worker_cards_frame.bind(
+            "<Configure>", self._on_worker_cards_resize)
+        # Sesuaikan tinggi canvas mengikuti isi
+        self._workers_canvas.bind(
+            "<Configure>", lambda e: self._workers_canvas.itemconfig(
+                self._canvas_win, height=e.height))
+
+        # Scroll dengan Shift+MouseWheel di atas area cards
+        self._workers_canvas.bind(
+            "<Shift-MouseWheel>",
+            lambda e: self._workers_canvas.xview_scroll(
+                -1 if e.delta > 0 else 1, "units"))
+        self._worker_cards_frame.bind(
+            "<Shift-MouseWheel>",
+            lambda e: self._workers_canvas.xview_scroll(
+                -1 if e.delta > 0 else 1, "units"))
+
+        # ── Tombol Add Worker ──
         ctk.CTkButton(outer, text="＋  Add Worker",
                       command=self._open_add_worker_dialog,
-                      width=120, height=26, **BTN_GHOST).pack(side="left",
-                                                               padx=(8, 0))
+                      width=120, height=26, **BTN_SUBTLE).grid(
+                          row=0, column=3, padx=(8, 0), pady=1)
+
+    def _on_worker_cards_resize(self, _event=None):
+        """Perbarui scroll region canvas saat jumlah/ukuran cards berubah."""
+        self._workers_canvas.configure(
+            scrollregion=self._workers_canvas.bbox("all"))
+        # Sembunyikan scrollbar jika tidak diperlukan
+        frame_w  = self._worker_cards_frame.winfo_reqwidth()
+        canvas_w = self._workers_canvas.winfo_width()
+        if frame_w <= canvas_w:
+            self._workers_hbar.grid_remove()
+        else:
+            self._workers_hbar.grid()
 
     def _build_treeview(self):
         frame = tk.Frame(self, bg=PANEL, highlightthickness=0, bd=0)
@@ -187,6 +232,14 @@ class BulkTab(ctk.CTkFrame):
         self._workers.append(w)
         self._add_worker_card(w)
 
+    def _bind_scroll(self, widget):
+        """Propagate Shift+MouseWheel ke canvas scroll untuk semua child card."""
+        widget.bind("<Shift-MouseWheel>",
+                    lambda e: self._workers_canvas.xview_scroll(
+                        -1 if e.delta > 0 else 1, "units"))
+        for child in widget.winfo_children():
+            self._bind_scroll(child)
+
     def _add_worker_card(self, w: WorkerConfig):
         card = ctk.CTkFrame(self._worker_cards_frame, fg_color=WIDGET,
                             corner_radius=6, border_width=0)
@@ -225,6 +278,9 @@ class BulkTab(ctk.CTkFrame):
                       text_color=SUBTEXT, font=FONT_SMALL,
                       command=lambda: self._remove_worker(w, card)).pack(
                           side="left", padx=(0, 4))
+
+        # Bind scroll setelah semua widget dalam card terbentuk
+        self._app.after(10, self._bind_scroll, card)
 
     def _remove_worker(self, w: WorkerConfig, card):
         if w in self._workers:
@@ -289,7 +345,7 @@ class BulkTab(ctk.CTkFrame):
                 self._app.after(0, w.login_btn.configure, {"state": "normal"})
             self._app.after(0, messagebox.showerror,
                             "Worker Login Error",
-                            f"{w.label} ({w.username}):\n{msg}")
+                            f"{w.label} ({w.username}):\n{_short_login_error(msg)}")
 
         threading.Thread(
             target=selenium_login_with_creds,
@@ -479,7 +535,7 @@ class BulkTab(ctk.CTkFrame):
                     self._set_worker_status(worker, "Gagal", DANGER)
                     self._app.after(0, messagebox.showerror,
                                     "Worker Login Error",
-                                    f"{worker.label} ({worker.username}):\n{msg}")
+                                    f"{worker.label} ({worker.username}):\n{_short_login_error(msg)}")
                     _maybe_start()
 
                 return _on_progress, _on_done, _on_error

@@ -13,6 +13,19 @@ from ui.constants import PANEL, WIDGET, SUBTEXT, SUCCESS, DANGER, BORDER
 from ui.constants import BTN_ACCENT, BTN_DANGER, BTN_GHOST
 from ui.constants import FONT, FONT_BOLD, FONT_SMALL
 from ui.api import selenium_login
+
+
+def _short_login_error(msg: str) -> str:
+    """Persingkat pesan error login yang panjang (misal ChromeDriver timeout)."""
+    low = msg.lower()
+    if "timeout" in low or "timed out" in low:
+        return "Timeout. Respons terlalu lama. Silakan coba lagi."
+    if "connection" in low or "refused" in low or "unreachable" in low:
+        return "Koneksi gagal. Periksa jaringan lalu coba lagi."
+    if "no such element" in low or "element not found" in low:
+        return "Halaman tidak terbaca. Mungkin tampilan berubah. Coba lagi."
+    # Potong jika lebih dari 120 karakter
+    return msg if len(msg) <= 120 else msg[:117] + "…"
 from config import credential_manager
 from ui.views.credentials_dialog import CredentialsDialog
 
@@ -159,10 +172,11 @@ class SessionBar(ctk.CTkFrame):
         self._login_btn.configure(state="normal")
 
     def _on_login_error(self, msg):
-        self.set_progress(f"Login gagal: {msg}")
+        short = _short_login_error(msg)
+        self.set_progress(f"Login gagal: {short}")
         self._login_btn.configure(state="normal")
         self.refresh()
-        messagebox.showerror("Login Error", msg)
+        messagebox.showerror("Login Error", short)
 
     # ── Logout ───────────────────────────────────────────────────────────────────
 

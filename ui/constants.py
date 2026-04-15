@@ -41,3 +41,7 @@ BTN_WARNING = dict(fg_color="#FFFBEB", hover_color="#FEF3C7", text_color=WARNING
 BTN_GHOST   = dict(fg_color=PANEL,     hover_color=HOVER,     text_color=SUBTEXT,    font=FONT,
                    border_width=1, border_color=BORDER)
 BTN_DEFAULT = dict(fg_color=WIDGET,    hover_color=HOVER,     text_color=TEXT,       font=FONT)
+BTN_BLUE    = dict(fg_color="#EBF4FF", hover_color="#BEE3F8", text_color="#2B6CB0",  font=FONT,
+                   border_width=1, border_color="#90CDF4")
+BTN_SUBTLE  = dict(fg_color="#EDF2F7", hover_color="#E2E8F0", text_color="#4A5568",  font=FONT,
+                   border_width=1, border_color="#CBD5E0")

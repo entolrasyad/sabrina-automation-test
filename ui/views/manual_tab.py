@@ -3,18 +3,58 @@ ui/views/manual_tab.py — Manual bot test tab
 Single input → chat bubble history (user right, bot left).
 """
 
+import math
+import re
 import threading
 import tkinter as tk
+import tkinter.font as tkfont
 from tkinter import messagebox
 import customtkinter as ctk
 
 from ui.constants import PANEL, WIDGET, TEXT, SUBTEXT, BORDER
+from ui.constants import ACCENT, ACCENT_D
 from ui.constants import BTN_ACCENT, BTN_WARNING
-from ui.constants import FONT, FONT_SMALL
+from ui.constants import FONT
 
-BUBBLE_USER = "#03AC0E"   # Tokopedia green — pesan terkirim
-BUBBLE_BOT  = "#EEF1F8"   # soft blue-gray — balasan bot
-FONT_CHAT   = ("Segoe UI", 10)
+BUBBLE_USER   = "#03AC0E"   # green — pesan user
+BUBBLE_BOT    = "#EEF1F8"   # soft blue-gray — balasan bot
+BUBBLE_FOOTER = "#F5F5F5"   # abu lebih terang — footer score
+BUBBLE_RADIUS  = 14
+BUBBLE_MAX_W   = 460         # pixel maks lebar bubble
+FONT_CHAT      = ("SF Pro", 10)
+FONT_CHAT_FOOTER = ("Segoe UI", 10)
+
+
+_PLACEHOLDER_RE = re.compile(r'\{[^{}]+\}')
+
+def _fill_placeholders(text: str) -> str:
+    """Ganti semua {placeholder} dengan 'Bot Tester'."""
+    return _PLACEHOLDER_RE.sub("Bot Tester", text)
+
+
+def _parse_replies(text: str):
+    """
+    Parse {replies:title=...,button=...,Name@===@payload@===@desc,...}
+    Returns dict {title, button, options: [(name, desc), ...]} or None.
+    """
+    t = text.strip()
+    if not (t.startswith("{replies:") and t.endswith("}")):
+        return None
+    body = t[9:-1]   # strip {replies: … }
+
+    title_m  = re.search(r"title=([^,]*)", body)
+    button_m = re.search(r"button=([^,]*)", body)
+    title        = title_m.group(1).strip()  if title_m  else ""
+    button_label = button_m.group(1).strip() if button_m else ""
+
+    options = []
+    for m in re.finditer(r"([^,@\n]+)@===@[^@]*@===@([^,}]*)", body):
+        name = m.group(1).strip()
+        desc = m.group(2).strip()
+        if name:
+            options.append((name, desc))
+
+    return {"title": title, "button": button_label, "options": options}
 
 
 class ManualTab(ctk.CTkFrame):
@@ -45,7 +85,7 @@ class ManualTab(ctk.CTkFrame):
         self._input.grid(row=0, column=0, sticky="ew", ipady=2)
         self._input.bind("<Return>", lambda *_: self._send())
 
-        self._send_btn = ctk.CTkButton(input_frame, text="▶  Send",
+        self._send_btn = ctk.CTkButton(input_frame, text="▷ Kirim",
                                        command=self._send, **BTN_ACCENT)
         self._send_btn.grid(row=0, column=1, padx=(8, 0))
 
@@ -86,7 +126,7 @@ class ManualTab(ctk.CTkFrame):
         self._canvas.bind("<MouseWheel>", self._on_mousewheel)
         self._chat_inner.bind("<MouseWheel>", self._on_mousewheel)
 
-    # ── Chat helpers ─────────────────────────────────────────────────────────────
+    # ── Canvas / scroll helpers ───────────────────────────────────────────────────
 
     def _on_inner_configure(self, *_):
         self._canvas.configure(scrollregion=self._canvas.bbox("all"))
@@ -98,52 +138,228 @@ class ManualTab(ctk.CTkFrame):
         self._canvas.yview_scroll(int(-1 * (e.delta / 120)), "units")
 
     def _bind_scroll(self, widget):
-        """Bind mousewheel recursively to all children so scroll works anywhere."""
-        widget.bind("<MouseWheel>", self._on_mousewheel, add="+")
+        """Bind mousewheel ke semua children. tk.Text di-override agar tidak scroll sendiri."""
+        if isinstance(widget, tk.Text):
+            widget.bind("<MouseWheel>",
+                        lambda e: self._canvas.yview_scroll(
+                            int(-1 * (e.delta / 120)), "units"),
+                        add="+")
+        else:
+            widget.bind("<MouseWheel>", self._on_mousewheel, add="+")
         for child in widget.winfo_children():
             self._bind_scroll(child)
 
+    # ── Bubble helpers ────────────────────────────────────────────────────────────
+
+    _BPADX = 10   # padding horizontal teks dalam bubble
+    _BPADY = 7    # padding vertikal teks dalam bubble
+
+    def _make_bubble(self, parent, text: str, bg: str, fg: str, side: str):
+        """
+        tk.Frame (auto-size persis mengikuti konten) + tk.Text (selectable).
+        Ukuran dihitung sebelum render — tidak bergantung pada timing layout.
+        """
+        f       = tkfont.Font(family=FONT_CHAT[0], size=FONT_CHAT[1])
+        char0_w = max(1, f.measure("0"))
+
+        # ── Lebar bubble: shrink ke konten, maks BUBBLE_MAX_W ────────────
+        max_line_px = max((f.measure(ln) for ln in text.split("\n")), default=40)
+        bubble_px   = min(BUBBLE_MAX_W, max_line_px + self._BPADX * 2 + 8)
+        inner_px    = max(40, bubble_px - self._BPADX * 2)
+        width_chars = max(4, inner_px // char0_w)
+
+        # ── Tinggi: hitung baris yang akan terbungkus ─────────────────────
+        total_lines = 0
+        for line in text.split("\n"):
+            line_px = f.measure(line) if line else 0
+            total_lines += max(1, math.ceil(line_px / inner_px))
+
+        # ── Widget ────────────────────────────────────────────────────────
+        # tk.Frame (bukan CTkFrame) agar auto-size tepat — tidak ada default 200px
+        outer = tk.Frame(parent, bg=bg)
+        outer.pack(side=side, padx=4, pady=2)
+
+        t = tk.Text(
+            outer,
+            bg=bg, fg=fg, font=FONT_CHAT,
+            relief="flat", bd=0, highlightthickness=0,
+            wrap="word", cursor="xterm",
+            width=width_chars, height=total_lines,
+            padx=self._BPADX, pady=self._BPADY,
+            spacing1=2, spacing2=2,
+            selectbackground="#B2D8FF", selectforeground=fg,
+            insertwidth=0,
+        )
+        if side == "right":
+            t.tag_configure("r", justify="right")
+            t.insert("1.0", text, "r")
+        else:
+            t.insert("1.0", text)
+        t.configure(state="disabled")
+        t.pack()
+
+        self._bind_scroll(outer)
+        return outer
+
+    # ── Replies popup bubble ──────────────────────────────────────────────────────
+
+    def _add_replies_bubbles(self, title: str, button_label: str, options: list):
+        """Bubble toggle: compact ↔ expanded list, inline di chat, lebar sama."""
+        f       = tkfont.Font(family=FONT_CHAT[0], size=FONT_CHAT[1])
+        char0_w = max(1, f.measure("0"))
+        btn_full = f"≡  {button_label}"
+
+        def _bubble_px(text):
+            max_lx = max((f.measure(ln) for ln in text.split("\n")), default=40)
+            return min(BUBBLE_MAX_W, max(80, max_lx + self._BPADX * 2 + 8))
+
+        # Lebar bubble disamakan antara title dan button (sama seperti _make_bubble)
+        shared_px   = max(_bubble_px(title), _bubble_px(btn_full)) if title else _bubble_px(btn_full)
+        inner_px    = max(40, shared_px - self._BPADX * 2)
+        width_chars = max(4, inner_px // char0_w)
+
+        FONT_ITEM_NAME = (FONT_CHAT[0], FONT_CHAT[1] - 1, "bold")
+        FONT_ITEM_DESC = (FONT_CHAT[0], FONT_CHAT[1] - 1)
+
+        # ── Bubble 1: teks judul ──────────────────────────────────────────────
+        if title:
+            row = tk.Frame(self._chat_inner, bg=PANEL)
+            row.pack(fill="x", pady=(4, 0), padx=12)
+            self._make_bubble(row, title, BUBBLE_BOT, TEXT, "left")
+            self._bind_scroll(row)
+
+        # ── Row untuk kedua state ─────────────────────────────────────────────
+        row_btn = tk.Frame(self._chat_inner, bg=PANEL)
+        row_btn.pack(fill="x", pady=(0, 0), padx=12)
+
+        # ── State COMPACT — tk.Text sama seperti bubble biasa ─────────────────
+        compact = tk.Frame(row_btn, bg=BUBBLE_BOT)
+        compact.pack(side="left", padx=4, pady=2)
+
+        t_c = tk.Text(compact, bg=BUBBLE_BOT, fg=BUBBLE_USER,
+                      font=(*FONT_CHAT, "bold"),
+                      relief="flat", bd=0, highlightthickness=0,
+                      wrap="word", cursor="hand2",
+                      width=width_chars, height=1,
+                      padx=self._BPADX, pady=self._BPADY,
+                      selectbackground="#B2D8FF", selectforeground=BUBBLE_USER,
+                      insertwidth=0)
+        t_c.tag_configure("c", justify="center")
+        t_c.insert("1.0", btn_full, "c")
+        t_c.configure(state="disabled")
+        t_c.pack()
+
+        # ── State EXPANDED — lebar tepat = compact_px, belum di-pack ──────────
+        # compact_px = lebar persis widget tk.Text di compact state
+        compact_px = width_chars * char0_w + 2 * self._BPADX
+        expanded   = tk.Frame(row_btn, bg=BUBBLE_BOT)
+
+        # Spacer tersembunyi: paksa expanded frame selebar persis compact bubble
+        spacer = tk.Frame(expanded, bg=BUBBLE_BOT, width=compact_px, height=0)
+        spacer.pack_propagate(False)
+        spacer.pack(anchor="w")
+
+        # Header — label fill="x" saja; ✕ di-place agar tidak memperlebar frame
+        hdr = tk.Frame(expanded, bg=ACCENT)
+        hdr.pack(fill="x")
+        tk.Label(hdr, text=btn_full, bg=ACCENT, fg="#ffffff",
+                 font=FONT_CHAT, anchor="w",
+                 padx=self._BPADX,
+                 pady=self._BPADY).pack(fill="x")
+
+        def _collapse(*_):
+            expanded.pack_forget()
+            compact.pack(side="left", padx=4, pady=2)
+            self._bind_scroll(row_btn)
+            self._canvas.update_idletasks()
+
+        close_btn = tk.Button(hdr, text="✕", bg=ACCENT, fg="#ffffff",
+                              bd=0, relief="flat", cursor="hand2",
+                              activebackground=ACCENT_D, activeforeground="#ffffff",
+                              font=FONT_CHAT, command=_collapse)
+        # place() tidak mempengaruhi ukuran frame induk
+        close_btn.place(relx=1.0, rely=0.5, anchor="e", x=-6)
+
+        # Opsi — fill="x" mengikuti lebar spacer, wraplength untuk teks panjang
+        for i, (name, desc) in enumerate(options):
+            ibg  = WIDGET if i % 2 == 0 else PANEL
+            item = tk.Frame(expanded, bg=ibg)
+            item.pack(fill="x")
+            tk.Label(item, text=name, bg=ibg, fg=TEXT,
+                     font=FONT_ITEM_NAME, anchor="w",
+                     wraplength=inner_px).pack(anchor="w", fill="x",
+                                               padx=self._BPADX, pady=(5, 0))
+            if desc:
+                tk.Label(item, text=desc, bg=ibg, fg=SUBTEXT,
+                         font=FONT_ITEM_DESC, anchor="w",
+                         wraplength=inner_px, justify="left").pack(
+                             anchor="w", fill="x",
+                             padx=self._BPADX, pady=(0, 5))
+            else:
+                item.pack_configure(pady=3)
+
+        def _expand(*_):
+            compact.pack_forget()
+            expanded.pack(side="left", padx=4, pady=2)
+            self._bind_scroll(row_btn)
+            self._canvas.update_idletasks()
+
+        t_c.bind("<Button-1>", _expand)
+        compact.bind("<Button-1>", _expand)
+
+        self._bind_scroll(row_btn)
+        self._scroll_bottom()
+
+    # ── Bubble builders ───────────────────────────────────────────────────────────
+
     def _add_user_bubble(self, text: str):
         row = tk.Frame(self._chat_inner, bg=PANEL)
-        row.pack(fill="x", pady=(6, 0), padx=8)
-
-        tk.Label(row, text=text,
-                 bg=BUBBLE_USER, fg="#ffffff",
-                 font=FONT_CHAT,
-                 wraplength=380, justify="left",
-                 padx=12, pady=8, relief="flat").pack(side="right")
+        row.pack(fill="x", pady=(6, 0), padx=12)
+        self._make_bubble(row, text, BUBBLE_USER, "#ffffff", "right")
         self._bind_scroll(row)
         self._scroll_bottom()
 
-    def _add_bot_bubble(self, dialog: str, score: str):
-        row = tk.Frame(self._chat_inner, bg=PANEL)
-        row.pack(fill="x", pady=(4, 0), padx=8)
+    def _add_bot_bubble(self, messages: list, dialog: str, score: str):
+        for msg in messages:
+            replies = _parse_replies(msg)
+            if replies:
+                # Terapkan placeholder replacement pada bagian teks yang tampil
+                self._add_replies_bubbles(
+                    _fill_placeholders(replies["title"]),
+                    _fill_placeholders(replies["button"]),
+                    [(_fill_placeholders(n), _fill_placeholders(d))
+                     for n, d in replies["options"]])
+            else:
+                row = tk.Frame(self._chat_inner, bg=PANEL)
+                row.pack(fill="x", pady=(4, 0), padx=12)
+                self._make_bubble(row, _fill_placeholders(msg), BUBBLE_BOT, TEXT, "left")
+                self._bind_scroll(row)
 
-        bubble = tk.Frame(row, bg=BUBBLE_BOT, padx=12, pady=8)
-        bubble.pack(side="left")
-
-        tk.Label(bubble, text="Dialog:", bg=BUBBLE_BOT, fg=TEXT,
-                 font=(*FONT_CHAT, "bold"), justify="left").pack(anchor="w")
-        tk.Label(bubble, text=dialog, bg=BUBBLE_BOT, fg=TEXT,
-                 font=FONT_CHAT, justify="left", wraplength=380).pack(anchor="w")
-
+        # ── Footer satu baris: Dialog | Score ──────────────────────────────
+        parts = []
+        if dialog:
+            parts.append(f"  {dialog}")
         if score:
-            tk.Label(bubble, text="Score:", bg=BUBBLE_BOT, fg=TEXT,
-                     font=(*FONT_CHAT, "bold"), justify="left").pack(anchor="w", pady=(8, 0))
-            tk.Label(bubble, text=score, bg=BUBBLE_BOT, fg=TEXT,
-                     font=FONT_CHAT, justify="left", wraplength=380).pack(anchor="w")
+            parts.append(f"{score}")
+        footer_text = "    |    ".join(parts) if parts else "(tidak ada balasan)"
 
-        self._bind_scroll(row)
+        row_f = tk.Frame(self._chat_inner, bg=PANEL)
+        row_f.pack(fill="x", pady=(2, 8), padx=12)
+        ctk.CTkLabel(
+            row_f, text=footer_text,
+            fg_color=BUBBLE_FOOTER, text_color=SUBTEXT,
+            font=FONT_CHAT_FOOTER, corner_radius=8, anchor="w",
+        ).pack(side="left", padx=4, ipadx=8, ipady=4)
+        self._bind_scroll(row_f)
         self._scroll_bottom()
 
     def _add_loading_bubble(self):
         row = tk.Frame(self._chat_inner, bg=PANEL)
-        row.pack(fill="x", pady=(4, 0), padx=8)
-
-        tk.Label(row, text="  ...  ",
-                 bg=WIDGET, fg=SUBTEXT,
-                 font=(*FONT_CHAT, "italic"),
-                 padx=12, pady=8, relief="flat").pack(side="left")
+        row.pack(fill="x", pady=(4, 0), padx=12)
+        ctk.CTkLabel(row, text="  ✵ Loading...  ",
+                     fg_color=WIDGET, text_color=SUBTEXT,
+                     font=(*FONT_CHAT, "italic"),
+                     corner_radius=BUBBLE_RADIUS).pack(side="left", padx=4, pady=2)
         self._bind_scroll(row)
         self._scroll_bottom()
         return row
@@ -155,6 +371,8 @@ class ManualTab(ctk.CTkFrame):
     def _clear_chat(self):
         for w in self._chat_inner.winfo_children():
             w.destroy()
+        self._canvas.update_idletasks()
+        self._canvas.yview_moveto(0.0)
 
     # ── Actions ──────────────────────────────────────────────────────────────────
 
@@ -185,7 +403,11 @@ class ManualTab(ctk.CTkFrame):
 
     def _on_done(self, result, loading):
         loading.destroy()
-        self._add_bot_bubble(result["dialog"], result["score"])
+        self._add_bot_bubble(
+            result.get("messages", []),
+            result["dialog"],
+            result["score"],
+        )
         self._send_btn.configure(state="normal")
         self._reset_btn.configure(state="normal")
         self._input.focus_set()

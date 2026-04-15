@@ -11,6 +11,9 @@ LOG_FILE = os.path.join(BASE_DIR, "error.log")
 
 sys.path.insert(0, BASE_DIR)
 
+import os
+os.environ["CTK_TELEMETRY"] = "0"   # matikan telemetri customtkinter ke Plausible.io
+
 import customtkinter as ctk
 ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("green")

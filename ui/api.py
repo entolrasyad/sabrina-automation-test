@@ -26,6 +26,43 @@ def _extract_cdata_text(xml: str, update_id: str) -> str:
     return m.group(1).strip() if m else ""
 
 
+def _parse_last_bot_messages(xml: str) -> list:
+    """
+    Ambil teks balasan bot dari exchange TERAKHIR di formBot:message.
+    Mengembalikan list string — satu elemen per bubble.
+    """
+    m = re.search(r'<update id="formBot:message"[^>]*>(.*?)</update>', xml, re.DOTALL)
+    if not m:
+        return []
+    html = re.sub(r"<!\[CDATA\[|\]\]>", "", m.group(1))
+
+    # Pisahkan tiap exchange — speech-bubble-left menandai awal turn baru
+    # Bagian setelah left-bubble TERAKHIR = respons bot terkini
+    parts = re.split(r'<div class="speech-bubble-left', html)
+    if len(parts) < 2:
+        return []
+    last_section = parts[-1]
+
+    # Kumpulkan semua span di dalam speech-bubble-right
+    spans = re.findall(
+        r'<div class="speech-bubble-right[^>]*>.*?<span[^>]*>(.*?)</span>',
+        last_section, re.DOTALL,
+    )
+
+    results = []
+    for raw in spans:
+        text = re.sub(r"<br\s*/?>", "\n", raw, flags=re.IGNORECASE)
+        text = re.sub(r"<[^>]+>", "", text)
+        text = (text.replace("&amp;", "&").replace("&lt;", "<")
+                    .replace("&gt;", ">").replace("&nbsp;", " ")
+                    .replace("\u201a", ","))
+        text = re.sub(r"\*([^*]+)\*", r"\1", text)   # hapus *bold* marker
+        text = text.strip()
+        if text:
+            results.append(text)
+    return results
+
+
 def call_bot_api(cookie_str: str, view_state: str, user_says: str) -> dict:
     try:
         resp = requests.post(
@@ -59,13 +96,14 @@ def call_bot_api(cookie_str: str, view_state: str, user_says: str) -> dict:
             verify=False,
             timeout=30,
         )
-        score  = _extract_cdata_text(resp.text, "formBot:lblScore")
-        dialog = _extract_cdata_text(resp.text, "formBot:lblDialog")
-        return {"dialog": dialog, "score": score}
+        score    = _extract_cdata_text(resp.text, "formBot:lblScore")
+        dialog   = _extract_cdata_text(resp.text, "formBot:lblDialog")
+        messages = _parse_last_bot_messages(resp.text)
+        return {"dialog": dialog, "score": score, "messages": messages}
     except requests.exceptions.Timeout:
-        return {"dialog": "ERROR: Request timeout", "score": ""}
+        return {"dialog": "ERROR: Request timeout", "score": "", "messages": []}
     except requests.exceptions.ConnectionError as e:
-        return {"dialog": f"ERROR: Connection error — {e}", "score": ""}
+        return {"dialog": f"ERROR: Connection error — {e}", "score": "", "messages": []}
 
 
 # ── Selenium Login ──────────────────────────────────────────────────────────────
