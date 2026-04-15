@@ -63,18 +63,39 @@ class App(ctk.CTk):
         return True
 
     def _set_icon(self):
-        import tempfile
-        for name in ("icon2.png", "icon2.ico"):
-            path = os.path.join(self._ASSETS, name)
+        # ── Set AppUserModelID agar taskbar Windows tidak group ke proses Python
+        try:
+            import ctypes
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+                "sabrina.bottester.app")
+        except Exception:
+            pass
+
+        ico_path = os.path.join(self._ASSETS, "Logo_Bank_Rakyat_Indonesia.ico")
+        png_path = os.path.join(self._ASSETS, "Logo_Bank_Rakyat_Indonesia.png")
+
+        if not os.path.exists(ico_path) and os.path.exists(png_path):
+            try:
+                from PIL import Image
+                src    = Image.open(png_path).convert("RGBA")
+                sizes  = [(16, 16), (32, 32), (48, 48), (256, 256)]
+                frames = [src.resize(s, Image.LANCZOS) for s in sizes]
+                frames[0].save(ico_path, format="ICO",
+                               sizes=sizes, append_images=frames[1:])
+            except Exception:
+                pass
+
+        for path in (ico_path, png_path):
             if not os.path.exists(path):
                 continue
             try:
-                from PIL import Image
-                img = Image.open(path).resize((32, 32))
-                tmp = tempfile.NamedTemporaryFile(suffix=".ico", delete=False)
-                img.save(tmp.name, format="ICO")
-                tmp.close()
-                self.iconbitmap(tmp.name)
+                if path.endswith(".ico"):
+                    self.iconbitmap(path)
+                else:
+                    from PIL import ImageTk, Image
+                    img = ImageTk.PhotoImage(Image.open(path).resize((48, 48)))
+                    self.iconphoto(True, img)
+                    self._icon_ref = img
                 return
             except Exception:
                 continue
