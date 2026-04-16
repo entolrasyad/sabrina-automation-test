@@ -127,7 +127,7 @@ def _selenium_login_impl(username: str, password: str,
             WebDriverWait(driver, 15).until(lambda d: LOGIN_URL not in d.current_url)
         except TimeoutException:
             growl = driver.find_elements(By.CSS_SELECTOR, ".ui-growl-item")
-            msg = growl[0].text if growl else "Timeout — credentials salah atau session aktif"
+            msg = growl[0].text if growl else "Credentials salah atau session sedang aktif"
             driver.quit()
             on_error(f"Login gagal: {msg}")
             return

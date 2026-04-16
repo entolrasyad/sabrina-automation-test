@@ -18,7 +18,7 @@ from ui.api import selenium_login
 def _short_login_error(msg: str) -> str:
     """Persingkat pesan error login yang panjang (misal ChromeDriver timeout)."""
     low = msg.lower()
-    if "timeout" in low or "timed out" in low:
+    if ("timeout" in low or "timed out" in low) and len(msg) > 120:
         return "Timeout. Respons terlalu lama. Silakan coba lagi."
     if "connection" in low or "refused" in low or "unreachable" in low:
         return "Koneksi gagal. Periksa jaringan lalu coba lagi."
