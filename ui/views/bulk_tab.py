@@ -106,7 +106,7 @@ class BulkTab(ctk.CTkFrame):
         self._start_from_cb.pack(side="left")
 
         # Tombol buka data.xlsx — float kanan
-        ctk.CTkButton(toolbar, text="📂  Buka Data Excel",
+        ctk.CTkButton(toolbar, text="📂  Buka Excel",
                       command=self._open_excel_file,
                       **BTN_BLUE).pack(side="right")
 

@@ -1,0 +1,18 @@
+START known_in=20
+t=0.8s in_id=1D97B198B66E sent_ok=False
+sent confirmed id=1D97B198B66E
+t=1.3s in_id=1D97B198B66E sent_ok=True
+t=1.7s in_id=1D97B198B66E sent_ok=True
+t=2.1s in_id=1D97B198B66E sent_ok=True
+t=2.5s in_id=1D97B198B66E sent_ok=True
+t=3.0s in_id=1D97B198B66E sent_ok=True
+t=3.4s in_id=1D97B198B66E sent_ok=True
+t=4.3s in_id=C7D0508C30A2 sent_ok=True
+bot reply detected id=C7D0508C30A2 reset stable
+t=5.4s in_id=9293C9D81535 sent_ok=True
+bot reply detected id=9293C9D81535 reset stable
+t=6.6s in_id=8A7D4538C11B sent_ok=True
+bot reply detected id=8A7D4538C11B reset stable
+t=8.3s in_id=8A7D4538C11B sent_ok=True
+t=8.7s in_id=8A7D4538C11B sent_ok=True
+STABLE → screenshot

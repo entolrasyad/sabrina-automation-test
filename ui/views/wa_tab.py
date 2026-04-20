@@ -4,6 +4,8 @@ Kirim trigger dari Excel ke WhatsApp Web.
 Chrome diembed langsung ke dalam GUI via Win32 window reparenting.
 """
 
+import datetime
+import os
 import textwrap
 import threading
 import time
@@ -17,7 +19,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import TimeoutException
 
 from ui.constants import WIDGET, ROW_ALT, SUBTEXT, PANEL, BG, TEXT, BORDER, SUCCESS, DANGER, ACCENT, ACCENT_D
-from ui.constants import BTN_ACCENT, BTN_GHOST
+from ui.constants import BTN_ACCENT, BTN_GHOST, BTN_BLUE
 from ui.constants import FONT, FONT_SMALL, FONT_BOLD, FONT_LABEL
 
 BTN_WA = dict(fg_color="#D1FAE5", hover_color="#A7F3D0", text_color=ACCENT_D, font=FONT_BOLD)
@@ -28,11 +30,12 @@ class WATab(ctk.CTkFrame):
     def __init__(self, parent, app):
         super().__init__(parent, fg_color="transparent")
         self._app          = app
-        self._connected    = False
-        self._polling      = False
-        self._chrome_hwnd  = None
-        self._session_id   = 0   # naik setiap kali Buka WhatsApp diklik
+        self._connected       = False
+        self._polling         = False
+        self._chrome_hwnd     = None
+        self._session_id      = 0   # naik setiap kali Buka WhatsApp diklik
         self._raw_triggers: list = []  # teks asli sebelum di-wrap (untuk editor)
+        self._last_screenshot = None  # path file screenshot terakhir
         self.columnconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
         self._build()
@@ -83,6 +86,17 @@ class WATab(ctk.CTkFrame):
 
         ctk.CTkFrame(toolbar, fg_color=BORDER, width=1,
                      height=24).pack(side="right", padx=(0, 14))
+
+        self._open_ss_btn = ctk.CTkButton(toolbar, text="🖼  Buka Screenshot",
+                                          command=self._open_last_screenshot,
+                                          **BTN_BLUE)
+        self._open_ss_btn.pack(side="right", padx=(0, 14))
+
+        self._capture_btn = ctk.CTkButton(toolbar, text="⛶  Manual Screenshot",
+                                          command=self._capture_chat,
+                                          state="disabled",
+                                          **BTN_GHOST)
+        self._capture_btn.pack(side="right", padx=(0, 6))
 
 
     # Nomor tujuan per environment (tanpa '+' atau '0' awal — format internasional)
@@ -243,11 +257,12 @@ class WATab(ctk.CTkFrame):
         vsb.grid(row=0, column=1, sticky="ns")
 
         # Tombol Kirim Trigger — lebar penuh, menempel di bawah treeview
-        self._send_btn = ctk.CTkButton(left_col, text="▶  Kirim Chat/Trigger",
+        self._send_btn = ctk.CTkButton(left_col, text="▷ Send Trigger",
                                        command=self._send_trigger,
                                        state="disabled",
                                        **BTN_ACCENT)
-        self._send_btn.grid(row=2, column=0, sticky="ew", pady=(3, 0))
+        self._send_btn.grid(row=2, column=0, sticky="ew", pady=(3, 2))
+
 
         # ── Separator ────────────────────────────────────────────────────────
         tk.Frame(content, bg=BORDER, width=1).grid(row=0, column=1, sticky="ns", padx=4)
@@ -351,7 +366,7 @@ class WATab(ctk.CTkFrame):
                 pass
             # Zoom out sesuai DPI scale agar konten tidak terlalu besar
             scale = self._app._get_dpi_scale()
-            zoom  = 0.4 if scale >= 1.45 else 0.5 if scale >= 1.20 else None
+            zoom  = 0.4 if scale >= 1.45 else 0.3 if scale >= 1.20 else None
             if zoom:
                 try:
                     driver.execute_cdp_cmd("Emulation.setPageScaleFactor",
@@ -535,6 +550,7 @@ class WATab(ctk.CTkFrame):
     def _refresh_send_btn(self):
         ready = self._connected and bool(self._tree.selection())
         self._send_btn.configure(state="normal" if ready else "disabled")
+        self._capture_btn.configure(state="normal" if self._connected else "disabled")
 
     _CSS_MSG_INPUT = (
         'div[aria-label="Type a message"],'
@@ -550,25 +566,29 @@ class WATab(ctk.CTkFrame):
         idx     = self._tree.get_children().index(sel[0])
         trigger = self._raw_triggers[idx] if idx < len(self._raw_triggers) else \
                   self._tree.item(sel[0], "values")[1]
+        seq_no  = self._tree.item(sel[0], "values")[0]   # nomor urut dari kolom "#"
         self._send_btn.configure(state="disabled")
         self._status_var.set("Mengirim Trigger...")
         threading.Thread(target=self._send_worker,
-                         args=(trigger,), daemon=True).start()
+                         args=(trigger, seq_no), daemon=True).start()
 
-    def _send_worker(self, text: str):
+    def _send_worker(self, text: str, seq_no):
         driver = self._app._wa_driver
         wait   = WebDriverWait(driver, 10)
+        sent   = False
         try:
-            # Ketik trigger ke message input yang sudah terbuka
             inp = wait.until(EC.element_to_be_clickable(
                 (By.CSS_SELECTOR, self._CSS_MSG_INPUT)))
             inp.click()
             inp.send_keys(text)
-            # Klik tombol Send sebagai validasi pengiriman
             send_btn = wait.until(EC.element_to_be_clickable(
                 (By.CSS_SELECTOR, self._CSS_SEND_BTN)))
+
+            in_ids_before = self._snapshot_in_ids(driver)
             send_btn.click()
-            self._app.after(0, lambda: self._status_var.set(f"Trigger Terkirim: {text}"))
+            sent = True
+            self._app.after(0, lambda: self._status_var.set(
+                f"Trigger Terkirim: {text} — menunggu balasan bot..."))
         except TimeoutException:
             self._app.after(0, lambda: self._status_var.set(
                 "⚠  Timeout — pastikan room chat sudah terbuka"))
@@ -577,6 +597,210 @@ class WATab(ctk.CTkFrame):
             self._app.after(0, lambda: self._status_var.set(f"Gagal Mengirim: {msg}"))
         finally:
             self._app.after(0, self._refresh_send_btn)
+
+        if sent:
+            self._wait_for_bot_reply(driver, in_ids_before, seq_no)
+
+
+    # ── Bot reply detection ───────────────────────────────────────────────────────
+
+    # Returns data-id of every INCOMING message currently visible in #main.
+    # We snapshot the full set before sending so we can detect a genuinely
+    # new bot reply even when virtual-scroll re-renders swap old IDs around.
+    _JS_ALL_IN_IDS = """
+var main = document.querySelector('#main');
+if (!main) return [];
+var msgs = main.querySelectorAll('[data-id]');
+var ids = [];
+for (var i = 0; i < msgs.length; i++) {
+  if (msgs[i].querySelector('[data-pre-plain-text]')) {
+    var id = msgs[i].getAttribute('data-id');
+    if (id) ids.push(id);
+  }
+}
+return ids;
+"""
+
+    # Returns data-id of the last INCOMING message visible in #main.
+    _JS_LAST_IN_ID = """
+var main = document.querySelector('#main');
+if (!main) return '';
+var msgs = main.querySelectorAll('[data-id]');
+for (var i = msgs.length - 1; i >= 0; i--) {
+  if (msgs[i].querySelector('[data-pre-plain-text]')) {
+    return msgs[i].getAttribute('data-id') || '';
+  }
+}
+return '';
+"""
+
+    def _snapshot_in_ids(self, driver) -> set:
+        try:
+            v = driver.execute_script(self._JS_ALL_IN_IDS)
+            return set(v) if isinstance(v, list) else set()
+        except Exception:
+            return set()
+
+    def _last_in_id(self, driver) -> str:
+        try:
+            v = driver.execute_script(self._JS_LAST_IN_ID)
+            return v if isinstance(v, str) else ""
+        except Exception:
+            return ""
+
+    def _wait_for_bot_reply(self, driver, known_ids: set, seq_no, timeout: int = 60):
+        deadline     = time.time() + timeout
+        sent_ok      = False
+        reply_id     = ""
+        stable_since = None
+
+        def _status(msg):
+            self._app.after(0, lambda m=msg: self._status_var.set(m))
+
+        while time.time() < deadline:
+            time.sleep(0.4)
+            cur = self._last_in_id(driver)
+            if not cur or cur in known_ids:
+                continue
+
+            if not sent_ok:
+                # First unknown = our own sent message (group chat adds sender header to all msgs)
+                sent_ok = True
+                known_ids.add(cur)
+                continue
+
+            # Subsequent unknown = bot reply; wait for it to stop changing (multi-part reply)
+            if cur != reply_id:
+                reply_id     = cur
+                stable_since = time.time()
+                _status("Balasan bot diterima, menunggu selesai...")
+            elif stable_since and time.time() - stable_since >= 1.5:
+                time.sleep(0.3)
+                self._app.after(0, self._flash_overlay)
+                _status("Mengambil screenshot...")
+                threading.Thread(target=self._capture_worker,
+                                 args=(seq_no,), daemon=True).start()
+                return
+
+        self._app.after(0, lambda: self._status_var.set(
+            "⚠  Timeout — balasan bot tidak muncul dalam 60 detik"))
+
+    # ── Capture ───────────────────────────────────────────────────────────────────
+
+    def _capture_chat(self):
+        self._capture_btn.configure(state="disabled")
+        self._status_var.set("Mengambil screenshot...")
+        self._flash_overlay()
+        threading.Thread(target=self._capture_worker, args=(None,), daemon=True).start()
+
+    def _flash_overlay(self):
+        """Animasi flash putih di atas area browser — efek screenshot HP."""
+        self._browser_frame.update_idletasks()
+        x = self._browser_frame.winfo_rootx()
+        y = self._browser_frame.winfo_rooty()
+        w = self._browser_frame.winfo_width()
+        h = self._browser_frame.winfo_height()
+
+        ov = tk.Toplevel(self._app)
+        ov.overrideredirect(True)
+        ov.geometry(f"{w}x{h}+{x}+{y}")
+        ov.configure(bg="#444444")
+        ov.attributes("-topmost", True)
+        ov.attributes("-alpha", 0.0)
+
+        # Fase 1 — shutter tutup: gelap masuk cepat (0 → 0.75 dalam ~50ms)
+        # Fase 2 — shutter buka: memudar keluar (0.75 → 0 dalam ~300ms)
+        steps = [
+            (0,   0.0),
+            (25,  0.65),
+            (50,  0.75),   # puncak
+            (120, 0.50),
+            (200, 0.25),
+            (300, 0.08),
+            (380, None),
+        ]
+
+        def _step(alpha):
+            try:
+                if alpha is None:
+                    ov.destroy()
+                else:
+                    ov.attributes("-alpha", alpha)
+            except tk.TclError:
+                pass
+
+        for delay, alpha in steps[1:]:
+            self._app.after(delay, lambda a=alpha: _step(a))
+
+    def _capture_worker(self, seq_no=None):
+        import io
+        from PIL import Image
+
+        driver = self._app._wa_driver
+        try:
+            # Ambil posisi #main dalam viewport (CSS pixel) via JS
+            rect = driver.execute_script("""
+                const el = document.querySelector('#main');
+                if (!el) return null;
+                const r = el.getBoundingClientRect();
+                return {x: r.left, y: r.top, width: r.width, height: r.height};
+            """)
+            if not rect or rect["width"] == 0:
+                raise RuntimeError("Elemen #main tidak ditemukan atau belum tampil")
+
+            # Device pixel ratio untuk konversi CSS px → physical px
+            dpr = driver.execute_script("return window.devicePixelRatio || 1;")
+
+            # Full screenshot lalu crop — lebih akurat dari element.screenshot()
+            # saat Chrome di-embed dengan scale override
+            png_data = driver.get_screenshot_as_png()
+            img      = Image.open(io.BytesIO(png_data))
+
+            left   = round(rect["x"]                    * dpr)
+            top    = round(rect["y"]                    * dpr)
+            right  = round((rect["x"] + rect["width"])  * dpr)
+            bottom = round((rect["y"] + rect["height"]) * dpr)
+
+            # Clamp agar tidak melewati batas gambar
+            left, top     = max(0, left),  max(0, top)
+            right, bottom = min(img.width, right), min(img.height, bottom)
+
+            cropped = img.crop((left, top, right, bottom))
+
+            save_dir = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)), "..", "..", "screenshots")
+            os.makedirs(save_dir, exist_ok=True)
+
+            ts       = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            prefix   = f"trigger_{seq_no}_" if seq_no is not None else "wa_capture_"
+            filename = os.path.abspath(os.path.join(save_dir, f"{prefix}{ts}.png"))
+
+            cropped.save(filename)
+
+            self._last_screenshot = filename
+            self._app.after(0, lambda: self._status_var.set(
+                f"Screenshot disimpan: {os.path.basename(filename)}"))
+        except Exception as e:
+            msg = str(e)
+            self._app.after(0, lambda: self._status_var.set(
+                f"Capture gagal: {msg}"))
+        finally:
+            self._app.after(0, lambda: self._capture_btn.configure(
+                state="normal" if self._connected else "disabled"))
+
+    def _open_last_screenshot(self):
+        import subprocess
+        ss_dir = os.path.abspath(os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "..", "..", "screenshots"))
+        if not os.path.exists(ss_dir):
+            self._status_var.set("⚠  Folder screenshots belum ada.")
+            return
+        if self._last_screenshot and os.path.exists(self._last_screenshot):
+            # Highlight file terakhir jika masih ada
+            subprocess.Popen(["explorer", "/select,", self._last_screenshot])
+        else:
+            # Buka folder saja
+            subprocess.Popen(["explorer", ss_dir])
 
 
 # ── Trigger Editor Dialog ─────────────────────────────────────────────────────

@@ -1,0 +1,89 @@
+{
+  "areas_summary": [
+    {
+      "child_count": 3,
+      "index": 0,
+      "tabindex_0": 12,
+      "tabindex_neg1": 65,
+      "with_role": 45
+    },
+    {
+      "child_count": 1,
+      "index": 1,
+      "tabindex_0": 3,
+      "tabindex_neg1": 1,
+      "with_role": 1
+    }
+  ],
+  "copyable_area_count": 2,
+  "data_attrs_in_main": {
+    "data-app-text-template": {
+      "tag": "STRONG",
+      "value_sample": "*${appText}*"
+    },
+    "data-asset-chat-background-beige": {
+      "tag": "DIV",
+      "value_sample": "true"
+    },
+    "data-icon": {
+      "tag": "SPAN",
+      "value_sample": "tail-in"
+    },
+    "data-id": {
+      "tag": "DIV",
+      "value_sample": "1E68CD410367DD8BC4"
+    },
+    "data-plain-text": {
+      "tag": "IMG",
+      "value_sample": "🙂"
+    },
+    "data-pre-plain-text": {
+      "tag": "DIV",
+      "value_sample": "[11:29, 4/20/2026] Sabrina BRI Dev: "
+    },
+    "data-scrolltracepolicy": {
+      "tag": "DIV",
+      "value_sample": "wa.web.conversation.messages"
+    },
+    "data-tab": {
+      "tag": "DIV",
+      "value_sample": "6"
+    },
+    "data-testid": {
+      "tag": "SPAN",
+      "value_sample": "selectable-text"
+    },
+    "data-virtualized": {
+      "tag": "DIV",
+      "value_sample": "false"
+    }
+  },
+  "element_with_most_children": {
+    "attrs": {
+      "class": "x3psx0u x12xbjc7 x1c1uobl xrmvbpv xh8yej3 xquzyny xvc5jky x1",
+      "data-tab": "8",
+      "tabindex": "0"
+    },
+    "child_count": 13,
+    "tag": "DIV"
+  },
+  "error": null,
+  "main_found": true,
+  "roles_found": {
+    "button": {
+      "count": 19,
+      "sample_class": "x1n2onr6 x1c4vz4f x2lah0s xdl72j9 x1cbfl22 x1y332i5",
+      "tag": "DIV"
+    },
+    "row": {
+      "count": 28,
+      "sample_class": "",
+      "tag": "DIV"
+    },
+    "textbox": {
+      "count": 1,
+      "sample_class": "x1hx0egp x6ikm8r x1odjw0f x1k6rcq7 x6prxxf",
+      "tag": "DIV"
+    }
+  }
+}
