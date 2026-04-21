@@ -19,7 +19,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import TimeoutException
 
 from ui.constants import WIDGET, ROW_ALT, SUBTEXT, PANEL, BG, TEXT, BORDER, SUCCESS, DANGER, ACCENT, ACCENT_D
-from ui.constants import BTN_ACCENT, BTN_GHOST, BTN_BLUE
+from ui.constants import BTN_ACCENT, BTN_GHOST, BTN_BLUE, BTN_DANGER
 from ui.constants import FONT, FONT_SMALL, FONT_BOLD, FONT_LABEL
 
 BTN_WA = dict(fg_color="#D1FAE5", hover_color="#A7F3D0", text_color=ACCENT_D, font=FONT_BOLD)
@@ -36,6 +36,8 @@ class WATab(ctk.CTkFrame):
         self._session_id      = 0   # naik setiap kali Buka WhatsApp diklik
         self._raw_triggers: list = []  # teks asli sebelum di-wrap (untuk editor)
         self._last_screenshot = None  # path file screenshot terakhir
+        self._auto_running    = False
+        self._auto_cancel     = False
         self.columnconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
         self._build()
@@ -87,12 +89,12 @@ class WATab(ctk.CTkFrame):
         ctk.CTkFrame(toolbar, fg_color=BORDER, width=1,
                      height=24).pack(side="right", padx=(0, 14))
 
-        self._open_ss_btn = ctk.CTkButton(toolbar, text="🖼  Buka Screenshot",
+        self._open_ss_btn = ctk.CTkButton(toolbar, text="🖼  Buka Capture",
                                           command=self._open_last_screenshot,
                                           **BTN_BLUE)
         self._open_ss_btn.pack(side="right", padx=(0, 14))
 
-        self._capture_btn = ctk.CTkButton(toolbar, text="⛶  Manual Screenshot",
+        self._capture_btn = ctk.CTkButton(toolbar, text="⛶  Manual Capture",
                                           command=self._capture_chat,
                                           state="disabled",
                                           **BTN_GHOST)
@@ -225,6 +227,7 @@ class WATab(ctk.CTkFrame):
         left_col.rowconfigure(0, weight=0)   # tombol edit — tinggi tetap
         left_col.rowconfigure(1, weight=1)   # treeview mengisi sisa ruang
         left_col.rowconfigure(2, weight=0)   # tombol kirim — tinggi tetap
+        left_col.rowconfigure(3, weight=0)   # tombol run automation — tinggi tetap
 
         # Tombol Edit List Trigger — lebar penuh, di atas treeview
         self._reload_btn = ctk.CTkButton(left_col, text="✏  Edit List Trigger",
@@ -257,11 +260,17 @@ class WATab(ctk.CTkFrame):
         vsb.grid(row=0, column=1, sticky="ns")
 
         # Tombol Kirim Trigger — lebar penuh, menempel di bawah treeview
-        self._send_btn = ctk.CTkButton(left_col, text="▷ Send Trigger",
+        self._send_btn = ctk.CTkButton(left_col, text="▷  Send Trigger",
                                        command=self._send_trigger,
                                        state="disabled",
                                        **BTN_ACCENT)
         self._send_btn.grid(row=2, column=0, sticky="ew", pady=(3, 2))
+
+        self._auto_btn = ctk.CTkButton(left_col, text="▷▷  Run All Triggers",
+                                       command=self._run_automation,
+                                       state="disabled",
+                                       **BTN_GHOST)
+        self._auto_btn.grid(row=3, column=0, sticky="ew", pady=(2, 0))
 
 
         # ── Separator ────────────────────────────────────────────────────────
@@ -551,6 +560,11 @@ class WATab(ctk.CTkFrame):
         ready = self._connected and bool(self._tree.selection())
         self._send_btn.configure(state="normal" if ready else "disabled")
         self._capture_btn.configure(state="normal" if self._connected else "disabled")
+        if not self._auto_running:
+            has_items = any(c not in self._spacer_iids for c in self._tree.get_children())
+            self._auto_btn.configure(
+                state="normal" if self._connected and has_items else "disabled"
+            )
 
     _CSS_MSG_INPUT = (
         'div[aria-label="Type a message"],'
@@ -558,6 +572,88 @@ class WATab(ctk.CTkFrame):
         'footer div[contenteditable="true"]'
     )
     _CSS_SEND_BTN = 'button[aria-label="Send"]'
+
+    # ── Automation ────────────────────────────────────────────────────────────────
+
+    def _run_automation(self):
+        if self._auto_running:
+            self._auto_cancel = True
+            self._auto_btn.configure(text="Menghentikan...", state="disabled")
+            return
+        children = [c for c in self._tree.get_children() if c not in self._spacer_iids]
+        if not children or not self._connected:
+            return
+
+        # Mulai dari trigger yang dipilih; jika tidak ada, dari awal
+        sel = self._tree.selection()
+        sel_valid = [s for s in sel if s not in self._spacer_iids]
+        if sel_valid and sel_valid[0] in children:
+            start = children.index(sel_valid[0])
+            children = children[start:]
+
+        self._auto_running = True
+        self._auto_cancel  = False
+        self._auto_btn.configure(text="■  Stop Automation", **BTN_DANGER)
+        self._send_btn.configure(state="disabled")
+        threading.Thread(target=self._automation_worker, args=(children,), daemon=True).start()
+
+    def _automation_worker(self, children: list):
+        driver = self._app._wa_driver
+        total  = len(children)
+        all_iids = list(self._tree.get_children())
+
+        for i, iid in enumerate(children):
+            if self._auto_cancel:
+                break
+
+            seq_no = self._tree.item(iid, "values")[0]
+            idx    = all_iids.index(iid)
+            text   = (self._raw_triggers[idx] if idx < len(self._raw_triggers)
+                      else self._tree.item(iid, "values")[1])
+
+            self._app.after(0, lambda i=iid: (
+                self._tree.selection_set(i), self._tree.see(i)))
+            self._app.after(0, lambda n=i + 1: self._status_var.set(
+                f"Automation {n}/{total} — Mengirim trigger..."))
+
+            wait = WebDriverWait(driver, 10)
+            sent = False
+            try:
+                inp = wait.until(EC.element_to_be_clickable(
+                    (By.CSS_SELECTOR, self._CSS_MSG_INPUT)))
+                inp.click()
+                inp.send_keys(text)
+                send_btn = wait.until(EC.element_to_be_clickable(
+                    (By.CSS_SELECTOR, self._CSS_SEND_BTN)))
+                in_ids_before = self._snapshot_in_ids(driver)
+                send_btn.click()
+                sent = True
+                self._app.after(0, lambda: self._status_var.set(
+                    "Trigger terkirim — menunggu balasan bot..."))
+            except Exception as e:
+                self._app.after(0, lambda m=str(e): self._status_var.set(
+                    f"Gagal mengirim: {m}"))
+
+            if sent and not self._auto_cancel:
+                done_evt = threading.Event()
+                self._wait_for_bot_reply(driver, in_ids_before, seq_no, on_done=done_evt)
+                done_evt.wait(timeout=90)
+
+            if not self._auto_cancel:
+                time.sleep(1.0)
+
+        self._app.after(0, self._on_automation_done)
+
+    def _on_automation_done(self):
+        cancelled = self._auto_cancel
+        self._auto_running = False
+        self._auto_cancel  = False
+        self._auto_btn.configure(text="▷▷  Run All Triggers", **BTN_GHOST)
+        self._refresh_send_btn()
+        self._status_var.set(
+            "Automation dihentikan." if cancelled else
+            "Automation selesai"
+        )
 
     def _send_trigger(self):
         sel = self._tree.selection()
@@ -648,7 +744,7 @@ return '';
         except Exception:
             return ""
 
-    def _wait_for_bot_reply(self, driver, known_ids: set, seq_no, timeout: int = 60):
+    def _wait_for_bot_reply(self, driver, known_ids: set, seq_no, timeout: int = 60, on_done=None):
         deadline     = time.time() + timeout
         sent_ok      = False
         reply_id     = ""
@@ -679,11 +775,13 @@ return '';
                 self._app.after(0, self._flash_overlay)
                 _status("Mengambil screenshot...")
                 threading.Thread(target=self._capture_worker,
-                                 args=(seq_no,), daemon=True).start()
+                                 args=(seq_no, on_done), daemon=True).start()
                 return
 
         self._app.after(0, lambda: self._status_var.set(
             "⚠  Timeout — balasan bot tidak muncul dalam 60 detik"))
+        if on_done:
+            on_done.set()
 
     # ── Capture ───────────────────────────────────────────────────────────────────
 
@@ -732,7 +830,7 @@ return '';
         for delay, alpha in steps[1:]:
             self._app.after(delay, lambda a=alpha: _step(a))
 
-    def _capture_worker(self, seq_no=None):
+    def _capture_worker(self, seq_no=None, on_done=None):
         import io
         from PIL import Image
 
@@ -771,9 +869,9 @@ return '';
                 os.path.dirname(os.path.abspath(__file__)), "..", "..", "screenshots")
             os.makedirs(save_dir, exist_ok=True)
 
-            ts       = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            prefix   = f"trigger_{seq_no}_" if seq_no is not None else "wa_capture_"
-            filename = os.path.abspath(os.path.join(save_dir, f"{prefix}{ts}.png"))
+            ts      = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            suffix  = f"_trigger_{int(seq_no):02d}" if seq_no is not None else "_capture"
+            filename = os.path.abspath(os.path.join(save_dir, f"{ts}{suffix}.png"))
 
             cropped.save(filename)
 
@@ -787,6 +885,8 @@ return '';
         finally:
             self._app.after(0, lambda: self._capture_btn.configure(
                 state="normal" if self._connected else "disabled"))
+            if on_done:
+                on_done.set()
 
     def _open_last_screenshot(self):
         import subprocess
