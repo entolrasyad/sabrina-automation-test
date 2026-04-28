@@ -700,16 +700,15 @@ class WATab(ctk.CTkFrame):
 
     # ── Bot reply detection ───────────────────────────────────────────────────────
 
-    # Returns data-id of every INCOMING message currently visible in #main.
-    # We snapshot the full set before sending so we can detect a genuinely
-    # new bot reply even when virtual-scroll re-renders swap old IDs around.
+    # .message-in covers both normal text bubbles (which also have [data-pre-plain-text])
+    # and quick-reply button bubbles (which have .message-in but NO data-pre-plain-text).
     _JS_ALL_IN_IDS = """
 var main = document.querySelector('#main');
 if (!main) return [];
 var msgs = main.querySelectorAll('[data-id]');
 var ids = [];
 for (var i = 0; i < msgs.length; i++) {
-  if (msgs[i].querySelector('[data-pre-plain-text]')) {
+  if (msgs[i].querySelector('.message-in')) {
     var id = msgs[i].getAttribute('data-id');
     if (id) ids.push(id);
   }
@@ -717,13 +716,12 @@ for (var i = 0; i < msgs.length; i++) {
 return ids;
 """
 
-    # Returns data-id of the last INCOMING message visible in #main.
     _JS_LAST_IN_ID = """
 var main = document.querySelector('#main');
 if (!main) return '';
 var msgs = main.querySelectorAll('[data-id]');
 for (var i = msgs.length - 1; i >= 0; i--) {
-  if (msgs[i].querySelector('[data-pre-plain-text]')) {
+  if (msgs[i].querySelector('.message-in')) {
     return msgs[i].getAttribute('data-id') || '';
   }
 }
@@ -746,7 +744,6 @@ return '';
 
     def _wait_for_bot_reply(self, driver, known_ids: set, seq_no, timeout: int = 60, on_done=None):
         deadline     = time.time() + timeout
-        sent_ok      = False
         reply_id     = ""
         stable_since = None
 
@@ -759,13 +756,7 @@ return '';
             if not cur or cur in known_ids:
                 continue
 
-            if not sent_ok:
-                # First unknown = our own sent message (group chat adds sender header to all msgs)
-                sent_ok = True
-                known_ids.add(cur)
-                continue
-
-            # Subsequent unknown = bot reply; wait for it to stop changing (multi-part reply)
+            # Bot reply: wait until it stops changing (multi-part reply)
             if cur != reply_id:
                 reply_id     = cur
                 stable_since = time.time()
